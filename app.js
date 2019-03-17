@@ -6,6 +6,9 @@ var logger = require('morgan');
 var Botkit = require('botkit');
 var fetch = require('node-fetch');
 const vCard = require('vcard');
+const Sequelize = require('sequelize');
+
+require('dotenv').config()
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -24,6 +27,88 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 // DB setup
+const sequelize = new Sequelize(
+  process.env.DATABASE,
+  process.env.DATABASE_USER,
+  process.env.DATABASE_PASSWORD, 
+  { host: 'localhost', dialect: 'postgres' }
+);
+
+sequelize
+  .authenticate()
+  .then(() => {
+    console.log('🎉 Connection has been established successfully.');
+  })
+  .catch(err => {
+    console.error('🙁 Unable to connect to the database:', err);
+  });
+
+const User = sequelize.define('user', {
+  firstName: {
+    type: Sequelize.STRING,
+    allowNull: false
+  },
+  lastName: {
+    type: Sequelize.STRING
+    // allowNull defaults to true
+  },
+  phoneNumber: {
+    type: Sequelize.STRING,
+    unique: true,
+  },
+});
+
+const Turn = sequelize.define('turn', {
+  user_id: {
+    type: Sequelize.INTEGER,
+    references: {
+      model: User,
+      key: 'id',
+      deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+    },
+    unique: 'userGameComposite',
+  },
+  messageType: {
+    type: Sequelize.STRING,
+    validate: {
+      isIn: [['emoji', 'text']],
+    },
+  },
+  message: {
+    type: Sequelize.STRING,
+    allowNull: true,
+  },
+  receivedAt: {
+    type: Sequelize.DATE,
+    allowNull: true,
+  },
+  nextUser_id: {
+    type: Sequelize.INTEGER,
+    references: {
+      model: User,
+      key: 'id',
+      deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+    },
+  },
+  isCurrent: {
+    type: Sequelize.BOOLEAN,
+    defaultValue: false,
+  },
+  gameId: {
+    type: Sequelize.INTEGER,
+    unique: 'userGameComposite',
+  },
+});
+
+User.sync().then(() => {
+  User.findOrCreate({ where: { phoneNumber: '5109151444' }, defaults: {
+    firstName: 'Mark',
+    lastName: 'Bennett',
+  }}).then((mark) => console.log('Mark', mark));
+});
+Turn.sync();
+
+
 
 
 // Twilio Botkit 
