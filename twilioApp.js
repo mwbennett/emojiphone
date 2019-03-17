@@ -76,25 +76,14 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
       {
         default: true,
         callback: async function(response, convo) {
-          console.log('Response', response);
-          response.MediaContentType0
           if (response.MediaContentType0 === 'text/x-vcard') {
             const phoneNumber = await downloadVCard(response);
-            console.log('New phone number added: ', phoneNumber);
-
             phoneNumbers.push(phoneNumber);
             convo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
 
-            // TODO: WHY ISN"T THIS WORKING??
-            // convo.addMessage('Got it!', ADD_CONTACTS_THREAD);
           } else {
             convo.gotoThread(INVALID_INPUT_THREAD);
-
-            // TODO: WHY ISN"T THIS WORKING??
-            // convo.addMessage("Sorry, I couldn't understand you. Please send a contact, or say 'DONE'.", ADD_CONTACTS_THREAD)
           }
-          // convo.repeat();
-          // convo.gotoThread(ADD_CONTACTS_THREAD);
         },
       }
     ], {}, ADD_CONTACTS_THREAD);
@@ -108,6 +97,7 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
       text: "Sorry, I couldn't understand you. Please send a contact, or say 'DONE'.",
       action: ADD_CONTACTS_THREAD
     }, INVALID_INPUT_THREAD);
+    
     convo.addMessage(`Ok, you will not start the game. Text "${INITIAITE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
     convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
 
