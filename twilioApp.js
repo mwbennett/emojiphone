@@ -23,6 +23,8 @@ const START_GAME_THREAD = 'startGame';
 const NOT_READY_YET_THREAD = 'notReadyYet';
 const QUIT_GAME_THREAD = 'quitGame';
 const ADD_CONTACTS_THREAD = 'addContacts';
+const INVALID_INPUT_THREAD = 'invalidInput';
+const ADDED_PHONE_NUMBER_THREAD = 'addedPhone';
 
 module.exports = {
   setup: function() {
@@ -81,19 +83,31 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
             console.log('New phone number added: ', phoneNumber);
 
             phoneNumbers.push(phoneNumber);
+            convo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
 
             // TODO: WHY ISN"T THIS WORKING??
-            convo.addMessage('Got it!', ADD_CONTACTS_THREAD);
+            // convo.addMessage('Got it!', ADD_CONTACTS_THREAD);
           } else {
+            convo.gotoThread(INVALID_INPUT_THREAD);
+
             // TODO: WHY ISN"T THIS WORKING??
-            convo.addMessage("Sorry, I couldn't understand you. Please send a contact, or say 'DONE'.", ADD_CONTACTS_THREAD)
+            // convo.addMessage("Sorry, I couldn't understand you. Please send a contact, or say 'DONE'.", ADD_CONTACTS_THREAD)
           }
-          convo.repeat();
-          convo.next();
+          // convo.repeat();
+          // convo.gotoThread(ADD_CONTACTS_THREAD);
         },
       }
     ], {}, ADD_CONTACTS_THREAD);
 
+    convo.addMessage({
+      text: 'Successfully added your contact!',
+      action: ADD_CONTACTS_THREAD
+    }, ADDED_PHONE_NUMBER_THREAD);
+
+    convo.addMessage({
+      text: "Sorry, I couldn't understand you. Please send a contact, or say 'DONE'.",
+      action: ADD_CONTACTS_THREAD
+    }, INVALID_INPUT_THREAD);
     convo.addMessage(`Ok, you will not start the game. Text "${INITIAITE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
     convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
 
