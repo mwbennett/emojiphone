@@ -16,6 +16,14 @@ var controller = Botkit.twiliosmsbot({
 // Minimum player count (including the "initiator" of the game)
 const MINIMUM_PLAYER_COUNT = 3;
 
+const INITIAITE_GAME_KEYWORD = 'start';
+const DONE_ADDING_CONTACTS_KEYWORD = 'done';
+const QUIT_ADDING_CONTACTS_KEYWORD = 'quit game';
+const START_GAME_THREAD = 'startGame';
+const NOT_READY_YET_THREAD = 'notReadyYet';
+const QUIT_GAME_THREAD = 'quitGame';
+const ADD_CONTACTS_THREAD = 'addContacts';
+
 module.exports = {
   setup: function() {
     var bot = controller.spawn({});
@@ -26,11 +34,77 @@ module.exports = {
 
       controller.createWebhookEndpoints(server, bot);
     })
-
-    controller.hears(['beginner'], 'message_received', initializeGame);
+    controller.hears([INITIAITE_GAME_KEYWORD], 'message_received', initiateGameConversation);
     
   }
 }
+
+/**
+ * Create the converstaion thread where a user can start the game
+ * @param  {object} bot  Botkit bot that can create conversations
+ * @param  {object} message  The intial message that was passed into the listener, should be "beginner"
+ */
+const initiateGameConversation = (bot, message) => {
+  bot.createConversation(message, function(err, convo) {
+    const phoneNumbers = [];
+    convo.addMessage({
+      text: 'Welcome to Emojiphone! Thanks for starting a new game!', 
+      action: ADD_CONTACTS_THREAD
+    });
+
+    convo.addQuestion(`Time to set up your game! Text me at least ${MINIMUM_PLAYER_COUNT - phoneNumbers.length - 1} total contacts to be able to start your game.
+
+Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_ADDING_CONTACTS_KEYWORD}" if you don't want to play.`, [
+      {
+        pattern: DONE_ADDING_CONTACTS_KEYWORD,
+        callback: function(response, convo) {
+          if (isGameReady(phoneNumbers)) {
+            convo.gotoThread(START_GAME_THREAD);
+          } else {
+            convo.gotoThread(NOT_READY_YET_THREAD);
+          }
+        },
+      },
+      {
+        pattern: QUIT_ADDING_CONTACTS_KEYWORD,
+        callback: function(response, convo) {
+          convo.gotoThread(QUIT_GAME_THREAD);
+        },
+      },
+      {
+        default: true,
+        callback: async function(response, convo) {
+          console.log('Response', response);
+          response.MediaContentType0
+          if (response.MediaContentType0 === 'text/x-vcard') {
+            const phoneNumber = await downloadVCard(response);
+            console.log('New phone number added: ', phoneNumber);
+
+            phoneNumbers.push(phoneNumber);
+
+            // TODO: WHY ISN"T THIS WORKING??
+            convo.addMessage('Got it!', ADD_CONTACTS_THREAD);
+          } else {
+            // TODO: WHY ISN"T THIS WORKING??
+            convo.addMessage("Sorry, I couldn't understand you. Please send a contact, or say 'DONE'.", ADD_CONTACTS_THREAD)
+          }
+          convo.repeat();
+          convo.next();
+        },
+      }
+    ], {}, ADD_CONTACTS_THREAD);
+
+    convo.addMessage(`Ok, you will not start the game. Text "${INITIAITE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
+    convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
+
+    convo.addMessage({
+      text: `Oops! You don't have enough other players. Please add at least ${MINIMUM_PLAYER_COUNT - phoneNumbers.length - 1} total contacts.`,
+      action: ADD_CONTACTS_THREAD,
+    }, 'notReadyYet');
+
+    convo.activate();
+  }); 
+};
 
 
 /**
@@ -59,73 +133,3 @@ const isGameReady = (phoneNumbers) => {
   console.log(`VALIDATING GAME: ${phoneNumbers.length} numbers`);
   return Array.isArray(phoneNumbers) && phoneNumbers.length >= MINIMUM_PLAYER_COUNT - 1;
 }
-
-const initializeGame = (bot, message) => {
-  bot.createConversation(message, function(err, convo) {
-    const phoneNumbers = [];
-    convo.addQuestion('Thanks for starting a new game! Are you ready to start adding contacts?', [
-      {
-        pattern: bot.utterances.yes,
-        callback: function(response, convo) {
-          convo.gotoThread('addContacts');
-        },
-      },
-    ], {}, 'default');
-
-    convo.addQuestion('Add as many contacts as you like. Text DONE when you want to start the game.', [
-      {
-        pattern: 'done',
-        callback: function(response, convo) {
-          console.log('done', response.Body);
-          if (isGameReady(phoneNumbers)) {
-            convo.gotoThread('startGame');
-          } else {
-            convo.gotoThread('notReadyYet');
-            // TODO: Different thread? Try again -- keep adding;
-          }
-        },
-      },
-      {
-        pattern: 'outtie',
-        callback: function(response, convo) {
-          console.log('donezo', response.Body);
-          convo.gotoThread('finishedGame');
-        },
-      },
-      {
-        default: true,
-        callback: async function(response, convo) {
-          console.log('Response', response);
-          if (response.MediaContentType0 === 'text/x-vcard') {
-            const phoneNumber = await downloadVCard(response);
-            console.log('New phone number added: ', phoneNumber);
-
-            phoneNumbers.push(phoneNumber);
-
-            // TODO do something with the number.
-
-            // TODO: WHY ISN"T THIS WORKING??
-            convo.addMessage('Got it!', 'addContacts');
-            // convo.say('Got it!');
-          } else {
-            // TODO: WHY ISN"T THIS WORKING??
-            convo.addMessage("Sorry, I couldn't understand you. Please send a contact, or say 'DONE'.", 'addContacts')
-            // convo.say("Sorry, I couldn't understand you. Please send a contact, or say 'DONE'.");
-          }
-          convo.repeat();
-          convo.next();
-        },
-      }
-    ], {}, 'addContacts');
-
-    convo.addMessage('Ok, you are done with the game', 'finishedGame');
-    convo.addMessage('Ok, we will begin the game!', 'startGame');
-
-    convo.addMessage({
-      text: `Oops! You only have ${phoneNumbers.length} other players. Please add ${MINIMUM_PLAYER_COUNT - phoneNumbers.length - 1} more contacts.`,
-      action: 'addContacts',
-    }, 'notReadyYet');
-
-    convo.activate();
-  }); 
-};
