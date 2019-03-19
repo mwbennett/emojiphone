@@ -5,6 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const twilioApp = require('./twilioApp');
 
+// Initialize dotenv files.
 require('dotenv').config()
 
 var indexRouter = require('./routes/index');
