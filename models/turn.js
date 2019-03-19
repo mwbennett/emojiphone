@@ -3,7 +3,7 @@
 const User = require('./user');
 
 module.exports = (sequelize, DataTypes) => {
-  const Turn = sequelize.define('Turn', {
+  const turn = sequelize.define('turn', {
     userId: {
       type: DataTypes.INTEGER,
       references: {
@@ -44,8 +44,8 @@ module.exports = (sequelize, DataTypes) => {
       unique: 'userGameComposite',
     },
   }, {});
-  Turn.associate = function(models) {
+  turn.associate = function(models) {
     // associations can be defined here
   };
-  return Turn;
+  return turn;
 };
