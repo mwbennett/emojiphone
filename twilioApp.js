@@ -1,11 +1,10 @@
 var Botkit = require('botkit');
-var fetch = require('node-fetch');
-const vCard = require('vcard');
+const utils = require('./utils/utils');
 
 // Twilio Botkit 
-var TWILIO_ACCOUNT_SID = 'AC88232d86e93e7150e3db15f8871ccdc6';
-var TWILIO_AUTH_TOKEN = '015c9250ac5b7257cc6f149af56c0666';
-var TWILIO_PHONE_NUMBER = '+13132469144';
+var TWILIO_ACCOUNT_SID = 'ACa5c63ba2287d0c4b4b0ab7f62835eba0';
+var TWILIO_AUTH_TOKEN = '34b8bf62be5aa7e766e139525363cf3a';
+var TWILIO_PHONE_NUMBER = '+12015848173';
 var controller = Botkit.twiliosmsbot({
   debug: true,
   account_sid: TWILIO_ACCOUNT_SID,
@@ -77,7 +76,9 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
         default: true,
         callback: async function(response, convo) {
           if (response.MediaContentType0 === 'text/x-vcard') {
-            const phoneNumber = await downloadVCard(response);
+            console.log("VCARD RESPONSE");
+            console.log(response);
+            const phoneNumber = await utils.downloadVCard(response);
             phoneNumbers.push(phoneNumber);
             convo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
 
@@ -110,28 +111,9 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
   }); 
 };
 
-
-/**
- * Provided an MMS vCard text message, fetch the vCard data and return the phoone number.
- * @param  {string} message 
- */
-const downloadVCard = async (message) => {
-  const url = message.MediaUrl0;
-  var card = new vCard();
-
-  const response = await fetch(url, { redirect: 'follow' });
-  const textContent = await response.text();
-
-  return new Promise((resolve, reject) => {
-    card.readData(textContent, function(err, json) {
-      resolve(json.TEL.value);
-    });
-  });
-};
-
 /**
  * Validate that we are ready to start the game!
- * @param  {string[]} phoneNumbers  List of phone numbers to include in the game.
+ * @param  {Object[]} phoneNumbers  List of "User" objects to include in the game.
  */
 const isGameReady = (phoneNumbers) => {
   console.log(`VALIDATING GAME: ${phoneNumbers.length} numbers`);
