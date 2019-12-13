@@ -25,7 +25,6 @@ describe('utils', () => {
     describe('downloadVcard', () => {
         it('should be able to create users from phone numbers', async function () {
             const user = await utils.downloadVCard(sampleMessage);
-            console.log(user);
             user.should.be.a('object');
             user.should.have.property('firstName');
             user.should.have.property('lastName');
