@@ -10,7 +10,7 @@ const Sequelize = require('sequelize');
 const sequelize = new Sequelize(config.database, config.username, config.password, config);
 const models = require('../../models');
 
-const phoneNumbers = ["9198462735", "9198684114"];
+const phoneNumbers = ["9198462735", "9198684114", "9198684334"];
 
 const users = [
     {
@@ -22,6 +22,11 @@ const users = [
         firstName: "Two",
         lastName: "Cool",
         phoneNumber: phoneNumbers[1]
+    },
+    {
+        firstName: "New",
+        lastName: "doo",
+        phoneNumber: phoneNumbers[2]
     }
 ]
 
@@ -45,6 +50,59 @@ describe('Setup conversation', () => {
             }).catch(err => {
                 done(err)
             });
+        });
+
+        it('it should create turns for each player', (done) => {
+           setupConversation.setupGameForTesting(users).then(() => {
+                models.turn.max('gameId').then(currentGameId => {
+                    models.turn.findAndCountAll({
+                        where: {
+                            gameId: currentGameId
+                        }
+                    }).then((turns) => {
+                        turns.count.should.equal(users.length);
+                        done();
+                    }).catch(err => {done(err)});
+                });
+            }).catch(err => {
+                done(err)
+            }); 
+        });
+
+        it('it should create exactly one turn for first player with isCurrent set to true', (done) => {
+           setupConversation.setupGameForTesting(users).then(() => {
+                models.turn.max('gameId').then(currentGameId => {
+                    models.turn.findAndCountAll({
+                        where: {
+                            gameId: currentGameId,
+                            isCurrent: true
+                        }
+                    }).then((turns) => {
+                        turns.count.should.equal(1);
+                        done();
+                    }).catch(err => {done(err)});
+                });
+            }).catch(err => {
+                done(err)
+            }); 
+        });
+
+        it('it should create exactly one turn for the last player where nextUserId is null', (done) => {
+           setupConversation.setupGameForTesting(users).then(() => {
+                models.turn.max('gameId').then(currentGameId => {
+                    models.turn.findAndCountAll({
+                        where: {
+                            gameId: currentGameId,
+                            nextUserId: null
+                        }
+                    }).then((turns) => {
+                        turns.count.should.equal(1);
+                        done();
+                    }).catch(err => {done(err)});
+                });
+            }).catch(err => {
+                done(err)
+            }); 
         });
     })
 })
