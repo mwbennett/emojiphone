@@ -10,16 +10,18 @@ const Sequelize = require('sequelize');
 const sequelize = new Sequelize(config.database, config.username, config.password, config);
 const models = require('../../models');
 
+const phoneNumbers = ["9198462735", "9198684114"];
+
 const users = [
     {
         firstName: "Blerp",
         lastName: "Person",
-        phoneNumber: "9198462735"
+        phoneNumber: phoneNumbers[0]
     },
     {
         firstName: "Two",
         lastName: "Cool",
-        phoneNumber: "9198684114"
+        phoneNumber: phoneNumbers[1]
     }
 ]
 
@@ -30,9 +32,16 @@ describe('Setup conversation', () => {
             done();
         })
 
-        it('it should be able to set up a game given a list of users', (done) => {
+        it('it should be add the users to the database', (done) => {
             setupConversation.setupGameForTesting(users).then(() => {
-                done();
+                models.user.findAndCountAll({where: {
+                    phoneNumber: {
+                        [Sequelize.Op.in]: phoneNumbers
+                    }
+                }}).then((users) => {
+                    users.count.should.equal(phoneNumbers.length);
+                    done();
+                }).catch(err => {done(err)});
             }).catch(err => {
                 done(err)
             });
