@@ -98,11 +98,15 @@ const addContactsQuestion = (convo, users) => {
 * @param  {Object[]} users  List of "User" objects to include in the game.
 */
 const setupGame = (users) => {
-    return models.user.bulkCreate(users, {returning: true}).then((result) => {
-        return result;
-    }).catch(err => {
-        console.log(err);
-        throw err;
+    let promises = [];
+    for(let user of users) {
+        promises.push(models.user.upsert(user).catch(err => {
+            console.log(err);
+            throw err;
+        }));
+    }
+    return Promise.all(promises).then(() => {
+        console.log("Done");
     })
 }
 
