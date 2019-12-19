@@ -10,8 +10,6 @@ module.exports = {
     * @param  {Object[]} users  List of "User" objects to include in the game.
     */
     setupGame: (users) => {
-        // TODO: either turn gameId into uuid or figure out ordered sequencing (prolly uuid)
-        // TODO: Add self to game?
         let that = this;
         let promises = [];
         for(let user of users) {

@@ -3,7 +3,6 @@ const phone = require("phone");
 const utils = require('../utils/utils');
 const setupUtils = require('../utils/setup_utils');
 
-// Minimum player count (including the "initiator" of the game)
 const DONE_ADDING_CONTACTS_KEYWORD = 'done';
 const QUIT_ADDING_CONTACTS_KEYWORD = 'quit game';
 const START_GAME_THREAD = 'startGame';
@@ -26,13 +25,12 @@ module.exports = {
      */
     initiateGameConversation: (bot, message) => {
       bot.createConversation(message, function(err, convo) {
-        const users = [];
         convo.addMessage({
             text: 'Welcome to Emojiphone! Thanks for starting a new game!', 
             action: ADD_CONTACTS_THREAD
         });
 
-        this.addContactsQuestion(convo, users);
+        this.addContactsQuestion(convo);
 
         convo.addMessage({
             text: 'Successfully added your contact!',
@@ -63,15 +61,17 @@ module.exports = {
         convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
 
         convo.addMessage({
-            text: `Oops! You don't have enough other players. Please add at least ${this.MINIMUM_PLAYER_COUNT - users.length - 1} total contacts.`,
+            text: `Oops! You don't have enough other players. Please add at least ${this.MINIMUM_PLAYER_COUNT - 1} total contacts.`,
             action: ADD_CONTACTS_THREAD,
         }, NOT_READY_YET_THREAD);
 
         convo.activate();
       }); 
     },
-    addContactsQuestion: (convo, users) => {
-        convo.addQuestion(`Time to set up your game! Text me at least ${this.MINIMUM_PLAYER_COUNT - users.length - 1} total contacts to be able to start your game.
+    addContactsQuestion: (convo) => {
+        let users = [];
+        
+        convo.addQuestion(`Time to set up your game! Text me at least ${this.MINIMUM_PLAYER_COUNT - 1} total contacts to be able to start your game.
 
         Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_ADDING_CONTACTS_KEYWORD}" if you don't want to play.`, [
             {
