@@ -4,7 +4,7 @@ const utils = require('../utils/utils');
 const setupUtils = require('../utils/setup_utils');
 
 const DONE_ADDING_CONTACTS_KEYWORD = 'done';
-const QUIT_ADDING_CONTACTS_KEYWORD = 'quit game';
+const QUIT_ADDING_CONTACTS_KEYWORD = 'exit';
 const START_GAME_THREAD = 'startGame';
 const NOT_READY_YET_THREAD = 'notReadyYet';
 const QUIT_GAME_THREAD = 'quitGame';
@@ -17,7 +17,6 @@ const INVALID_NUMBER_THREAD = 'invalidNumber';
 
 module.exports = {
     INITIATE_GAME_KEYWORD: "start",
-    MINIMUM_PLAYER_COUNT: 3,
     /**
      * Create the converstaion thread where a user can start the game
      * @param  {object} bot  Botkit bot that can create conversations
@@ -30,7 +29,7 @@ module.exports = {
             action: ADD_CONTACTS_THREAD
         });
 
-        this.addContactsQuestion(convo);
+        module.exports.addContactsQuestion(convo);
 
         convo.addMessage({
             text: 'Successfully added your contact!',
@@ -38,7 +37,7 @@ module.exports = {
         }, ADDED_PHONE_NUMBER_THREAD);
 
         convo.addMessage({
-            text: "Sorry, I couldn't understand you. Please send a contact, or say 'DONE'.",
+            text: `Sorry, I couldn't understand you. Please send a contact, or say "${DONE_ADDING_CONTACTS_KEYWORD}" or "${QUIT_GAME_THREAD}".`,
             action: ADD_CONTACTS_THREAD
         }, INVALID_INPUT_THREAD);
 
@@ -57,11 +56,11 @@ module.exports = {
             action: ADD_CONTACTS_THREAD
         }, INVALID_NUMBER_THREAD);
         
-        convo.addMessage(`Ok, you will not start the game. Text "${this.INITIATE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
+        convo.addMessage(`Ok, you will not start the game. Text "${module.exports.INITIATE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
         convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
 
         convo.addMessage({
-            text: `Oops! You don't have enough other players. Please add at least ${this.MINIMUM_PLAYER_COUNT - 1} total contacts.`,
+            text: `Oops! You don't have enough other players. Please add at least ${setupUtils.MINIMUM_PLAYER_COUNT - 1} total contacts.`,
             action: ADD_CONTACTS_THREAD,
         }, NOT_READY_YET_THREAD);
 
@@ -71,7 +70,7 @@ module.exports = {
     addContactsQuestion: (convo) => {
         let users = [];
         
-        convo.addQuestion(`Time to set up your game! Text me at least ${this.MINIMUM_PLAYER_COUNT - 1} total contacts to be able to start your game.
+        convo.addQuestion(`Time to set up your game! Text me at least ${setupUtils.MINIMUM_PLAYER_COUNT - 1} total contacts to be able to start your game.
 
         Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_ADDING_CONTACTS_KEYWORD}" if you don't want to play.`, [
             {

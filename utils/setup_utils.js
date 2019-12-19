@@ -5,6 +5,7 @@ const models = require('../models');
 const setupConversation = require('../conversations/setup')
 
 module.exports = {
+    MINIMUM_PLAYER_COUNT: 3,
     /**
     * Setup the game by instantiating users and turns
     * @param  {Object[]} users  List of "User" objects to include in the game.
@@ -71,7 +72,7 @@ module.exports = {
      * @param  {Object[]} users  List of "User" objects to include in the game.
      */
     isGameReady: (users) => {
-        return Array.isArray(users) && users.length >= setupConversation.MINIMUM_PLAYER_COUNT - 1;
+        return Array.isArray(users) && users.length >= module.exports.MINIMUM_PLAYER_COUNT - 1;
     },
 
     /**
