@@ -15,6 +15,7 @@ const ADD_CONTACTS_THREAD = 'addContacts';
 const INVALID_INPUT_THREAD = 'invalidInput';
 const ADDED_PHONE_NUMBER_THREAD = 'addedPhone';
 const ERROR_THREAD = 'errorThread';
+const DUPLICATE_NUMBER_THREAD = 'duplicateThread';
 
 
 
@@ -52,6 +53,11 @@ module.exports = {
             text: "Sorry, we encountered an error processing your contact. Please try again or contact our support team at TODO.",
             action: ADD_CONTACTS_THREAD
         }, ERROR_THREAD);
+
+        convo.addMessage({
+            text: "Sorry, you've already added someone with that phone number. Please choose a contact with a phone number different from any you've added so far",
+            action: ADD_CONTACTS_THREAD
+        }, DUPLICATE_NUMBER_THREAD);
         
         convo.addMessage(`Ok, you will not start the game. Text "${INITIATE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
         convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
@@ -66,6 +72,9 @@ module.exports = {
     },
     setupGameForTesting: (users) => {
         return setupGame(users);
+    },
+    containsPhoneNumberForTesting: (users, phoneNumber) => {
+        return containsPhoneNumber(users, phoneNumber);
     }
 }
 
@@ -95,13 +104,17 @@ const addContactsQuestion = (convo, users) => {
             callback: async function(response, convo) {
                 if (response.MediaContentType0 === 'text/x-vcard') {
                     try {
-                        const user = await utils.downloadVCard(response);
+                        let user = await utils.downloadVCard(response);
+                        if (!containsPhoneNumber(users, user.phoneNumber)) {
+                            users.push(user);
+                            convo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
+                        } else {
+                            convo.gotoThread(DUPLICATE_NUMBER_THREAD);
+                        }
                     } catch (err) {
                         console.log("Error downloading vcard", err);
                         return convo.gotoThread(ERROR_THREAD);
                     }
-                    users.push(user);
-                    convo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
                 } else {
                     convo.gotoThread(INVALID_INPUT_THREAD);
                 }
@@ -181,4 +194,13 @@ const isGameReady = (users) => {
     // TODO: handle duplicates?
     console.log(`VALIDATING GAME: ${users.length} numbers`);
     return Array.isArray(users) && users.length >= MINIMUM_PLAYER_COUNT - 1;
+}
+
+/**
+ * Check if a set of users contrains an entry with the given phone number
+ * @param  {Object[]} users  List of "User" objects.
+ * @param  {String} phoneNumber  Phone number to check
+ */
+const containsPhoneNumber = (users, phoneNumber) => {
+    return users.filter(user => user.phoneNumber == phoneNumber).length > 0
 }

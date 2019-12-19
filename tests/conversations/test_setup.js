@@ -69,7 +69,7 @@ describe('Setup conversation', () => {
             }); 
         });
 
-        it.only('it should create exactly one turn for first player with isCurrent set to true and messageType set to "text"', (done) => {
+        it('it should create exactly one turn for first player with isCurrent set to true and messageType set to "text"', (done) => {
            setupConversation.setupGameForTesting(users).then(() => {
                 models.turn.max('gameId').then(currentGameId => {
                     models.turn.findAll({
@@ -105,6 +105,19 @@ describe('Setup conversation', () => {
             }).catch(err => {
                 done(err)
             }); 
+        });
+    })
+
+    describe('containsPhoneNumber', () => {
+
+        it('it should return true if a user has that phoneNumber', (done) => {
+            setupConversation.containsPhoneNumberForTesting(users, phoneNumbers[0]).should.equal(true);
+            done();
+        });
+
+        it('it should return false if no user has that phoneNumber', (done) => {
+            setupConversation.containsPhoneNumberForTesting(users, "phoneNumbers").should.equal(false);
+            done();
         });
     })
 })
