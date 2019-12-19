@@ -1,4 +1,5 @@
 const _ = require("underscore");
+const phone = require("phone");
 
 const models = require('../models');
 const utils = require('../utils/utils');
@@ -16,7 +17,7 @@ const INVALID_INPUT_THREAD = 'invalidInput';
 const ADDED_PHONE_NUMBER_THREAD = 'addedPhone';
 const ERROR_THREAD = 'errorThread';
 const DUPLICATE_NUMBER_THREAD = 'duplicateThread';
-
+const INVALID_NUMBER_THREAD = 'invalidNumber';
 
 
 // EOD so TODO: Share between this and twilioApp.js
@@ -58,6 +59,11 @@ module.exports = {
             text: "Sorry, you've already added someone with that phone number. Please choose a contact with a phone number different from any you've added so far",
             action: ADD_CONTACTS_THREAD
         }, DUPLICATE_NUMBER_THREAD);
+
+        convo.addMessage({
+            text: "Sorry, the phone number for that contact is invalid. Please try another contact with a valid US-based phone number.",
+            action: ADD_CONTACTS_THREAD
+        }, INVALID_NUMBER_THREAD);
         
         convo.addMessage(`Ok, you will not start the game. Text "${INITIATE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
         convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
@@ -105,11 +111,16 @@ const addContactsQuestion = (convo, users) => {
                 if (response.MediaContentType0 === 'text/x-vcard') {
                     try {
                         let user = await utils.downloadVCard(response);
-                        if (!containsPhoneNumber(users, user.phoneNumber)) {
+                        let validatedNumber = phone(user.phoneNumber, "USA");
+                        if (validatedNumber.length == 0 ){
+                            return convo.gotoThread(INVALID_NUMBER_THREAD);
+                        }
+                        user.phoneNumber = validatedNumber[0];
+                        if (containsPhoneNumber(users, user.phoneNumber)) {
+                            convo.gotoThread(DUPLICATE_NUMBER_THREAD);
+                        } else {
                             users.push(user);
                             convo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
-                        } else {
-                            convo.gotoThread(DUPLICATE_NUMBER_THREAD);
                         }
                     } catch (err) {
                         console.log("Error downloading vcard", err);
