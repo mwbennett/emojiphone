@@ -1,6 +1,7 @@
 const _ = require("underscore");
 
 const models = require('../models');
+const utils = require('../utils/utils');
 const MessageType = require('../types/message_type');
 
 // Minimum player count (including the "initiator" of the game)
@@ -13,6 +14,7 @@ const QUIT_GAME_THREAD = 'quitGame';
 const ADD_CONTACTS_THREAD = 'addContacts';
 const INVALID_INPUT_THREAD = 'invalidInput';
 const ADDED_PHONE_NUMBER_THREAD = 'addedPhone';
+const ERROR_THREAD = 'errorThread';
 
 
 
@@ -45,6 +47,11 @@ module.exports = {
             text: "Sorry, I couldn't understand you. Please send a contact, or say 'DONE'.",
             action: ADD_CONTACTS_THREAD
         }, INVALID_INPUT_THREAD);
+
+        convo.addMessage({
+            text: "Sorry, we encountered an error processing your contact. Please try again or contact our support team at TODO.",
+            action: ADD_CONTACTS_THREAD
+        }, ERROR_THREAD);
         
         convo.addMessage(`Ok, you will not start the game. Text "${INITIATE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
         convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
@@ -52,7 +59,7 @@ module.exports = {
         convo.addMessage({
             text: `Oops! You don't have enough other players. Please add at least ${MINIMUM_PLAYER_COUNT - users.length - 1} total contacts.`,
             action: ADD_CONTACTS_THREAD,
-        }, 'notReadyYet');
+        }, NOT_READY_YET_THREAD);
 
         convo.activate();
       }); 
@@ -87,7 +94,12 @@ const addContactsQuestion = (convo, users) => {
             default: true,
             callback: async function(response, convo) {
                 if (response.MediaContentType0 === 'text/x-vcard') {
-                    const user = await utils.downloadVCard(response);
+                    try {
+                        const user = await utils.downloadVCard(response);
+                    } catch (err) {
+                        console.log("Error downloading vcard", err);
+                        return convo.gotoThread(ERROR_THREAD);
+                    }
                     users.push(user);
                     convo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
                 } else {
