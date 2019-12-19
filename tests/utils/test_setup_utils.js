@@ -30,11 +30,13 @@ const users = [
     }
 ]
 
-describe('Setup conversation', () => {
+describe('Setup conversation utils', () => {
     describe('setupGame', () => {
 
         beforeEach(done => {
-            done();
+            testUtils.truncateDatabase().then(() => {
+                done()
+            });
         })
 
         it('it should be add the users to the database', (done) => {
@@ -55,6 +57,8 @@ describe('Setup conversation', () => {
         it('it should create turns for each player', (done) => {
            setupUtils.setupGame(users).then(() => {
                 models.turn.max('gameId').then(currentGameId => {
+                    if (!currentGameId) 
+                        currentGameId = 1;
                     models.turn.findAndCountAll({
                         where: {
                             gameId: currentGameId

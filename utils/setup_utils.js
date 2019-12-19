@@ -10,7 +10,6 @@ module.exports = {
     * @param  {Object[]} users  List of "User" objects to include in the game.
     */
     setupGame: (users) => {
-        let that = this;
         let promises = [];
         for(let user of users) {
             promises.push(models.user.upsert(user, {returning: true}).catch(err => {
@@ -18,7 +17,9 @@ module.exports = {
                 throw err;
             }));
         }
-        return Promise.all(promises).then(that.makeTurns);
+        return Promise.all(promises).then((users) => {
+            return module.exports.makeTurns(users);
+        });
     },
 
     /**
@@ -26,7 +27,6 @@ module.exports = {
     * @param  {Object[]} dbUsers  List of users from the database in the Sequelize format
     */
     makeTurns: (dbUsers) => {
-        let that = this;
         dbUsers = _.shuffle(dbUsers);
         let isCurrent = true;
         let messageType = MessageType.text;
@@ -40,7 +40,7 @@ module.exports = {
                 if (i < dbUsers.length - 1) {
                     nextUserId = dbUsers[i + 1][0].id;
                 }
-                turnPromises.push(that.makeTurn(dbUsers[i][0], nextUserId, isCurrent, maxGameId, messageType));
+                turnPromises.push(module.exports.makeTurn(dbUsers[i][0], nextUserId, isCurrent, maxGameId, messageType));
                 isCurrent = false;
                 messageType = null;
             }
