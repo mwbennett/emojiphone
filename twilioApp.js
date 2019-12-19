@@ -1,16 +1,14 @@
+require('dotenv').config();
 var Botkit = require('botkit');
 const setupConversation = require('./conversations/setup');
 const utils = require('./utils/utils');
 
 // Twilio Botkit 
-var TWILIO_ACCOUNT_SID = 'ACa5c63ba2287d0c4b4b0ab7f62835eba0';
-var TWILIO_AUTH_TOKEN = '34b8bf62be5aa7e766e139525363cf3a';
-var TWILIO_PHONE_NUMBER = '+12015848173';
 var controller = Botkit.twiliosmsbot({
   debug: true,
-  account_sid: TWILIO_ACCOUNT_SID,
-  auth_token: TWILIO_AUTH_TOKEN,
-  twilio_number: TWILIO_PHONE_NUMBER,
+  account_sid: process.env.TWILIO_ACCOUNT_SID,
+  auth_token: process.env.TWILIO_AUTH_TOKEN,
+  twilio_number: process.env.TWILIO_PHONE_NUMBER,
 });
 
 module.exports = {
