@@ -1,3 +1,8 @@
+const _ = require("underscore");
+
+const models = require('../models');
+const MessageType = require('../types/message_type');
+
 // Minimum player count (including the "initiator" of the game)
 const MINIMUM_PLAYER_COUNT = 3;
 const DONE_ADDING_CONTACTS_KEYWORD = 'done';
@@ -9,8 +14,7 @@ const ADD_CONTACTS_THREAD = 'addContacts';
 const INVALID_INPUT_THREAD = 'invalidInput';
 const ADDED_PHONE_NUMBER_THREAD = 'addedPhone';
 
-const models = require('../models');
-const _ = require("underscore");
+
 
 // EOD so TODO: Share between this and twilioApp.js
 const INITIATE_GAME_KEYWORD = "start";
@@ -99,7 +103,7 @@ const addContactsQuestion = (convo, users) => {
 * @param  {Object[]} users  List of "User" objects to include in the game.
 */
 const setupGame = (users) => {
-    // TODO: either turn user id into uuid or figure out ordered sequencing (prolly uuid)
+    // TODO: either turn gameId into uuid or figure out ordered sequencing (prolly uuid)
     // TODO: Add self to game?
     let promises = [];
     for(let user of users) {
@@ -118,7 +122,8 @@ const setupGame = (users) => {
 const makeTurns = (dbUsers) => {
     dbUsers = _.shuffle(dbUsers);
     let isCurrent = true;
-    models.turn.max('gameId').then(maxGameId => {
+    let messageType = MessageType.text;
+    return models.turn.max('gameId').then(maxGameId => {
         if (!maxGameId) 
             maxGameId = 0
         maxGameId++;
@@ -129,8 +134,9 @@ const makeTurns = (dbUsers) => {
                 nextUserId = dbUsers[i + 1][0].id;
             }
             console.log(nextUserId);
-            turnPromises.push(makeTurn(dbUsers[i][0], nextUserId, isCurrent, maxGameId));
+            turnPromises.push(makeTurn(dbUsers[i][0], nextUserId, isCurrent, maxGameId, messageType));
             isCurrent = false;
+            messageType = null;
         }
         return Promise.all(turnPromises);
     });
@@ -142,13 +148,15 @@ const makeTurns = (dbUsers) => {
 * @param  {integer} nextUserId  Id of user who will go after the current user
 * @param  {boolean} isCurrent  Whether this user is first or not (isCurrent = true)
 * @param  {integer} gameId  Identifier for this round of the game
+* @param  {string} messageType  Type of message (emoji, text, or null)
 */
-const makeTurn = (user, nextUserId, isCurrent, gameId) => {
+const makeTurn = (user, nextUserId, isCurrent, gameId, messageType) => {
     let turn = {
         userId: user.id,
         isCurrent: isCurrent,
         gameId: gameId,
-        nextUserId: nextUserId
+        nextUserId: nextUserId,
+        messageType: messageType
     }
     return models.turn.create(turn);
 }

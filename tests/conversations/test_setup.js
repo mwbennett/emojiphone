@@ -3,12 +3,12 @@ var should = require('chai').should();
 let setupConversation = require('../../conversations/setup');
 let testUtils = require('../../utils/testing_utils');
 
-
 const env = process.env.NODE_ENV || 'development';
 const config = require('../../config/config')[env];
 const Sequelize = require('sequelize');
 const sequelize = new Sequelize(config.database, config.username, config.password, config);
 const models = require('../../models');
+const MessageType = require('../../types/message_type');
 
 const phoneNumbers = ["9198462735", "9198684114", "9198684334"];
 
@@ -69,16 +69,18 @@ describe('Setup conversation', () => {
             }); 
         });
 
-        it('it should create exactly one turn for first player with isCurrent set to true', (done) => {
+        it.only('it should create exactly one turn for first player with isCurrent set to true and messageType set to "text"', (done) => {
            setupConversation.setupGameForTesting(users).then(() => {
                 models.turn.max('gameId').then(currentGameId => {
-                    models.turn.findAndCountAll({
+                    models.turn.findAll({
                         where: {
                             gameId: currentGameId,
                             isCurrent: true
-                        }
+                        },
+                        raw: true
                     }).then((turns) => {
-                        turns.count.should.equal(1);
+                        turns.length.should.equal(1);
+                        turns[0].messageType.should.equal(MessageType.text);
                         done();
                     }).catch(err => {done(err)});
                 });
