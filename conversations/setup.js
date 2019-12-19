@@ -1,12 +1,9 @@
-const _ = require("underscore");
 const phone = require("phone");
 
-const models = require('../models');
 const utils = require('../utils/utils');
-const MessageType = require('../types/message_type');
+const setupUtils = require('../utils/setup_utils');
 
 // Minimum player count (including the "initiator" of the game)
-const MINIMUM_PLAYER_COUNT = 3;
 const DONE_ADDING_CONTACTS_KEYWORD = 'done';
 const QUIT_ADDING_CONTACTS_KEYWORD = 'quit game';
 const START_GAME_THREAD = 'startGame';
@@ -21,6 +18,7 @@ const INVALID_NUMBER_THREAD = 'invalidNumber';
 
 module.exports = {
     INITIATE_GAME_KEYWORD: "start",
+    MINIMUM_PLAYER_COUNT: 3,
     /**
      * Create the converstaion thread where a user can start the game
      * @param  {object} bot  Botkit bot that can create conversations
@@ -34,7 +32,7 @@ module.exports = {
             action: ADD_CONTACTS_THREAD
         });
 
-        addContactsQuestion(convo, users);
+        this.addContactsQuestion(convo, users);
 
         convo.addMessage({
             text: 'Successfully added your contact!',
@@ -65,149 +63,60 @@ module.exports = {
         convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
 
         convo.addMessage({
-            text: `Oops! You don't have enough other players. Please add at least ${MINIMUM_PLAYER_COUNT - users.length - 1} total contacts.`,
+            text: `Oops! You don't have enough other players. Please add at least ${this.MINIMUM_PLAYER_COUNT - users.length - 1} total contacts.`,
             action: ADD_CONTACTS_THREAD,
         }, NOT_READY_YET_THREAD);
 
         convo.activate();
       }); 
     },
-    setupGameForTesting: (users) => {
-        return setupGame(users);
-    },
-    containsPhoneNumberForTesting: (users, phoneNumber) => {
-        return containsPhoneNumber(users, phoneNumber);
-    }
-}
+    addContactsQuestion: (convo, users) => {
+        convo.addQuestion(`Time to set up your game! Text me at least ${this.MINIMUM_PLAYER_COUNT - users.length - 1} total contacts to be able to start your game.
 
-const addContactsQuestion = (convo, users) => {
-    convo.addQuestion(`Time to set up your game! Text me at least ${MINIMUM_PLAYER_COUNT - users.length - 1} total contacts to be able to start your game.
-
-    Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_ADDING_CONTACTS_KEYWORD}" if you don't want to play.`, [
-        {
-            pattern: DONE_ADDING_CONTACTS_KEYWORD,
-            callback: function(response, convo) {
-                if (isGameReady(users)) {
-                    setupGame(users);
-                    convo.gotoThread(START_GAME_THREAD);
-                } else {
-                    convo.gotoThread(NOT_READY_YET_THREAD);
-                }
-            },
-        },
-        {
-            pattern: QUIT_ADDING_CONTACTS_KEYWORD,
-            callback: function(response, convo) {
-                convo.gotoThread(QUIT_GAME_THREAD);
-            },
-        },
-        {
-            default: true,
-            callback: async function(response, convo) {
-                if (response.MediaContentType0 === 'text/x-vcard') {
-                    try {
-                        let user = await utils.downloadVCard(response);
-                        let validatedNumber = phone(user.phoneNumber, "USA");
-                        if (validatedNumber.length == 0 ){
-                            return convo.gotoThread(INVALID_NUMBER_THREAD);
-                        }
-                        user.phoneNumber = validatedNumber[0];
-                        if (containsPhoneNumber(users, user.phoneNumber)) {
-                            convo.gotoThread(DUPLICATE_NUMBER_THREAD);
-                        } else {
-                            users.push(user);
-                            convo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
-                        }
-                    } catch (err) {
-                        console.log("Error downloading vcard", err);
-                        return convo.gotoThread(ERROR_THREAD);
+        Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_ADDING_CONTACTS_KEYWORD}" if you don't want to play.`, [
+            {
+                pattern: DONE_ADDING_CONTACTS_KEYWORD,
+                callback: function(response, convo) {
+                    if (setupUtils.isGameReady(users)) {
+                        setupUtils.setupGame(users);
+                        convo.gotoThread(START_GAME_THREAD);
+                    } else {
+                        convo.gotoThread(NOT_READY_YET_THREAD);
                     }
-                } else {
-                    convo.gotoThread(INVALID_INPUT_THREAD);
-                }
+                },
             },
-        }
-    ], {}, ADD_CONTACTS_THREAD);
-}
-
-/**
-* Setup the game by instantiating users and turns
-* @param  {Object[]} users  List of "User" objects to include in the game.
-*/
-const setupGame = (users) => {
-    // TODO: either turn gameId into uuid or figure out ordered sequencing (prolly uuid)
-    // TODO: Add self to game?
-    let promises = [];
-    for(let user of users) {
-        promises.push(models.user.upsert(user, {returning: true}).catch(err => {
-            console.log(err);
-            throw err;
-        }));
-    }
-    return Promise.all(promises).then(makeTurns);
-}
-
-/**
-* Create game turns given the players involved. Order should be random!
-* @param  {Object[]} dbUsers  List of users from the database in the Sequelize format
-*/
-const makeTurns = (dbUsers) => {
-    dbUsers = _.shuffle(dbUsers);
-    let isCurrent = true;
-    let messageType = MessageType.text;
-    return models.turn.max('gameId').then(maxGameId => {
-        if (!maxGameId) 
-            maxGameId = 0
-        maxGameId++;
-        let turnPromises = [];
-        for (var i = 0; i < dbUsers.length; i++) {
-            nextUserId = null;
-            if (i < dbUsers.length - 1) {
-                nextUserId = dbUsers[i + 1][0].id;
+            {
+                pattern: QUIT_ADDING_CONTACTS_KEYWORD,
+                callback: function(response, convo) {
+                    convo.gotoThread(QUIT_GAME_THREAD);
+                },
+            },
+            {
+                default: true,
+                callback: async function(response, convo) {
+                    if (response.MediaContentType0 === 'text/x-vcard') {
+                        try {
+                            let user = await utils.downloadVCard(response);
+                            let validatedNumber = phone(user.phoneNumber, "USA");
+                            if (validatedNumber.length == 0 ){
+                                return convo.gotoThread(INVALID_NUMBER_THREAD);
+                            }
+                            user.phoneNumber = validatedNumber[0];
+                            if (setupUtils.containsPhoneNumber(users, user.phoneNumber)) {
+                                convo.gotoThread(DUPLICATE_NUMBER_THREAD);
+                            } else {
+                                users.push(user);
+                                convo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
+                            }
+                        } catch (err) {
+                            console.log("Error downloading vcard", err);
+                            return convo.gotoThread(ERROR_THREAD);
+                        }
+                    } else {
+                        convo.gotoThread(INVALID_INPUT_THREAD);
+                    }
+                },
             }
-            console.log(nextUserId);
-            turnPromises.push(makeTurn(dbUsers[i][0], nextUserId, isCurrent, maxGameId, messageType));
-            isCurrent = false;
-            messageType = null;
-        }
-        return Promise.all(turnPromises);
-    });
-}
-
-/**
-* Make a single turn in the game
-* @param  {Object} user  User who's turn it is
-* @param  {integer} nextUserId  Id of user who will go after the current user
-* @param  {boolean} isCurrent  Whether this user is first or not (isCurrent = true)
-* @param  {integer} gameId  Identifier for this round of the game
-* @param  {string} messageType  Type of message (emoji, text, or null)
-*/
-const makeTurn = (user, nextUserId, isCurrent, gameId, messageType) => {
-    let turn = {
-        userId: user.id,
-        isCurrent: isCurrent,
-        gameId: gameId,
-        nextUserId: nextUserId,
-        messageType: messageType
-    }
-    return models.turn.create(turn);
-}
-
-/**
- * Validate that we are ready to start the game!
- * @param  {Object[]} users  List of "User" objects to include in the game.
- */
-const isGameReady = (users) => {
-    // TODO: handle duplicates?
-    console.log(`VALIDATING GAME: ${users.length} numbers`);
-    return Array.isArray(users) && users.length >= MINIMUM_PLAYER_COUNT - 1;
-}
-
-/**
- * Check if a set of users contrains an entry with the given phone number
- * @param  {Object[]} users  List of "User" objects.
- * @param  {String} phoneNumber  Phone number to check
- */
-const containsPhoneNumber = (users, phoneNumber) => {
-    return users.filter(user => user.phoneNumber == phoneNumber).length > 0
+        ], {}, ADD_CONTACTS_THREAD);
+    },
 }

@@ -1,6 +1,6 @@
 var assert = require('assert');
 var should = require('chai').should();
-let setupConversation = require('../../conversations/setup');
+let setupUtils = require('../../utils/setup_utils');
 let testUtils = require('../../utils/testing_utils');
 
 const env = process.env.NODE_ENV || 'development';
@@ -38,7 +38,7 @@ describe('Setup conversation', () => {
         })
 
         it('it should be add the users to the database', (done) => {
-            setupConversation.setupGameForTesting(users).then(() => {
+            setupUtils.setupGame(users).then(() => {
                 models.user.findAndCountAll({where: {
                     phoneNumber: {
                         [Sequelize.Op.in]: phoneNumbers
@@ -53,7 +53,7 @@ describe('Setup conversation', () => {
         });
 
         it('it should create turns for each player', (done) => {
-           setupConversation.setupGameForTesting(users).then(() => {
+           setupUtils.setupGame(users).then(() => {
                 models.turn.max('gameId').then(currentGameId => {
                     models.turn.findAndCountAll({
                         where: {
@@ -70,7 +70,7 @@ describe('Setup conversation', () => {
         });
 
         it('it should create exactly one turn for first player with isCurrent set to true and messageType set to "text"', (done) => {
-           setupConversation.setupGameForTesting(users).then(() => {
+           setupUtils.setupGame(users).then(() => {
                 models.turn.max('gameId').then(currentGameId => {
                     models.turn.findAll({
                         where: {
@@ -90,7 +90,7 @@ describe('Setup conversation', () => {
         });
 
         it('it should create exactly one turn for the last player where nextUserId is null', (done) => {
-           setupConversation.setupGameForTesting(users).then(() => {
+           setupUtils.setupGame(users).then(() => {
                 models.turn.max('gameId').then(currentGameId => {
                     models.turn.findAndCountAll({
                         where: {
@@ -111,12 +111,12 @@ describe('Setup conversation', () => {
     describe('containsPhoneNumber', () => {
 
         it('it should return true if a user has that phoneNumber', (done) => {
-            setupConversation.containsPhoneNumberForTesting(users, phoneNumbers[0]).should.equal(true);
+            setupUtils.containsPhoneNumber(users, phoneNumbers[0]).should.equal(true);
             done();
         });
 
         it('it should return false if no user has that phoneNumber', (done) => {
-            setupConversation.containsPhoneNumberForTesting(users, "phoneNumbers").should.equal(false);
+            setupUtils.containsPhoneNumber(users, "phoneNumbers").should.equal(false);
             done();
         });
     })
