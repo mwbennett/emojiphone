@@ -13,9 +13,6 @@ var controller = Botkit.twiliosmsbot({
   twilio_number: TWILIO_PHONE_NUMBER,
 });
 
-
-const INITIATE_GAME_KEYWORD = 'start';
-
 module.exports = {
   setup: function() {
     var bot = controller.spawn({});
@@ -26,6 +23,6 @@ module.exports = {
 
       controller.createWebhookEndpoints(server, bot);
     })
-    controller.hears([INITIATE_GAME_KEYWORD], 'message_received', setupConversation.initiateGameConversation);    
+    controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message_received', setupConversation.initiateGameConversation);    
   }
 }

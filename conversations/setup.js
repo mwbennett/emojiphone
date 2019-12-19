@@ -19,12 +19,8 @@ const ERROR_THREAD = 'errorThread';
 const DUPLICATE_NUMBER_THREAD = 'duplicateThread';
 const INVALID_NUMBER_THREAD = 'invalidNumber';
 
-
-// EOD so TODO: Share between this and twilioApp.js
-const INITIATE_GAME_KEYWORD = "start";
-
-
 module.exports = {
+    INITIATE_GAME_KEYWORD: "start",
     /**
      * Create the converstaion thread where a user can start the game
      * @param  {object} bot  Botkit bot that can create conversations
@@ -65,7 +61,7 @@ module.exports = {
             action: ADD_CONTACTS_THREAD
         }, INVALID_NUMBER_THREAD);
         
-        convo.addMessage(`Ok, you will not start the game. Text "${INITIATE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
+        convo.addMessage(`Ok, you will not start the game. Text "${this.INITIATE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
         convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
 
         convo.addMessage({
