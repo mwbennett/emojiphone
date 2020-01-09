@@ -1,5 +1,8 @@
 const utils = require('../utils/utils');
+const turnUtils = require('../utils/turn_utils');
+
 const TURN_SUCCESS_THREAD = "success";
+const TURN_FAIL_THREAD = "fail";
 const TURN_THREAD = "turn";
 
 module.exports = {
@@ -16,6 +19,11 @@ module.exports = {
             });
 
             convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
+            
+            convo.addMessage({
+                text: 'Sorry your response was not written in ONLY (TODO) text. Please try again!',
+                action: TURN_THREAD
+            }, TURN_FAIL_THREAD);
 
             convo.addQuestion(`Text your response to the following prompt using ONLY (TODO) text:
 Bleep bloop booopowpa doo(TODO)`, 
@@ -23,7 +31,12 @@ Bleep bloop booopowpa doo(TODO)`,
                     {
                         default: true,
                         callback: async (response, convo) => {
-                            convo.gotoThread(TURN_SUCCESS_THREAD);
+                            let messageType = "doesn't matter for now";
+                            if (turnUtils.isValidResponse(response.Body, messageType)) {
+                                convo.gotoThread(TURN_SUCCESS_THREAD);
+                            } else {
+                                convo.gotoThread(TURN_FAIL_THREAD);
+                            }
                         }
                     }
                 ], {}, TURN_THREAD
