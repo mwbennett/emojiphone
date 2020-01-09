@@ -2,7 +2,6 @@ const _ = require("underscore");
 
 const MessageType = require('../types/message_type');
 const models = require('../models');
-const setupConversation = require('../conversations/setup')
 
 module.exports = {
     MINIMUM_PLAYER_COUNT: 3,
