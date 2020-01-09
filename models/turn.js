@@ -1,6 +1,7 @@
 'use strict';
 
 const User = require('./user');
+const Sequelize = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   const turn = sequelize.define('turn', {
@@ -9,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       references: {
         model: User,
         key: 'id',
-        deferrable: DataTypes.Deferrable.INITIALLY_IMMEDIATE,
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
       },
       unique: 'userGameComposite',
     },
@@ -32,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
       references: {
         model: User,
         key: 'id',
-        deferrable: DataTypes.Deferrable.INITIALLY_IMMEDIATE,
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
       },
     },
     isCurrent: {
