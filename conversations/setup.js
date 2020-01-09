@@ -78,6 +78,7 @@ module.exports = {
                 callback: function(response, convo) {
                     if (setupUtils.isGameReady(users)) {
                         setupUtils.setupGame(users);
+                        // Initiate first turn here?!
                         convo.gotoThread(START_GAME_THREAD);
                     } else {
                         convo.gotoThread(NOT_READY_YET_THREAD);
