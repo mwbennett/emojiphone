@@ -1,6 +1,7 @@
 require('dotenv').config();
 var Botkit = require('botkit');
 const setupConversation = require('./conversations/setup');
+const turnConversation = require('./conversations/turn');
 const utils = require('./utils/utils');
 
 // Twilio Botkit 
@@ -21,6 +22,7 @@ module.exports = {
 
       controller.createWebhookEndpoints(server, bot);
     })
-    controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message_received', setupConversation.initiateGameConversation);    
+    // controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message_received', setupConversation.initiateGameConversation);
+    controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message_received', turnConversation.initiateTurnConversation);
   }
 }
