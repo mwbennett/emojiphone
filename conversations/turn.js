@@ -1,5 +1,6 @@
 const utils = require('../utils/utils');
 const turnUtils = require('../utils/turn_utils');
+const models = require('../models');
 
 const TURN_SUCCESS_THREAD = "success";
 const TURN_FAIL_THREAD = "fail";
@@ -28,37 +29,40 @@ module.exports = {
     // TODO: Send to the correct phone number
     initiateTurnConversation: (bot, message, previousTurn) => {
         let currentMessageType = turnUtils.oppositeMessageType(previousTurn.messageType);
-        bot.createConversation(message, function(err, convo) {
-            convo.addMessage({
-                text: 'Time to take your turn in your game of Emojiphone!', 
-                action: TURN_THREAD
-            });
+        models.turn.findOne({where: {userId: previousTurn.nextUserId, gameId: previousTurn.gameId}, include: [{model: models.user, as: "nextUser"}]}).then(currentTurn => {
+            bot.createConversation(message, function(err, convo) {
+                convo.addMessage({
+                    text: 'Time to take your turn in your game of Emojiphone!', 
+                    action: TURN_THREAD
+                });
 
-            convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
-            
-            convo.addMessage({
-                text: `Sorry your response was not written in ONLY ${currentMessageType}. Please try again!`,
-                action: TURN_THREAD
-            }, TURN_FAIL_THREAD);
+                convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
+                
+                convo.addMessage({
+                    text: `Sorry your response was not written in ONLY ${currentMessageType}. Please try again!`,
+                    action: TURN_THREAD
+                }, TURN_FAIL_THREAD);
 
-            convo.addQuestion(`Text your response to the following prompt using ONLY ${currentMessageType}:
-${previousTurn.message}`, 
-                [
-                    {
-                        default: true,
-                        callback: async (response, convo) => {
-                            let messageType = "doesn't matter for now";
-                            if (turnUtils.isValidResponse(response.Body, messageType)) {
-                                convo.gotoThread(TURN_SUCCESS_THREAD);
-                            } else {
-                                convo.gotoThread(TURN_FAIL_THREAD);
+                convo.addQuestion(`Text your response to the following prompt using ONLY ${currentMessageType}:
+    ${previousTurn.message}`, 
+                    [
+                        {
+                            default: true,
+                            callback: async (response, convo) => {
+                                if (turnUtils.isValidResponse(response.Body, currentMessageType)) {
+                                    currentTurn.update({message: response.Body, messageType: currentMessageType, receivedAt: new Date(), isCurrent: false})
+                                    convo.gotoThread(TURN_SUCCESS_THREAD);
+
+                                } else {
+                                    convo.gotoThread(TURN_FAIL_THREAD);
+                                }
                             }
                         }
-                    }
-                ], {}, TURN_THREAD
-            );
+                    ], {}, TURN_THREAD
+                );
 
-            convo.activate();
+                convo.activate();
+            })
         })
     }
 }
