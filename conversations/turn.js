@@ -27,13 +27,13 @@ module.exports = {
      * @param  {object} message  The intial message that was passed into the listener, should be INITIATE_GAME_KEYWORD
      * @param  {object} turn  Database Turn that was just taken.
      */
-    // TODO: Send to the correct phone number
     initiateTurnConversation: (bot, previousTurn) => {
         let currentMessageType = turnUtils.oppositeMessageType(previousTurn.messageType);
         models.turn.findOne({where: {userId: previousTurn.nextUserId, gameId: previousTurn.gameId}, include: [{model: models.user, as: "user"}]}).then(currentTurn => {
             currentTurn.update({isCurrent: true});
-            module.exports.initiateTurn(bot, currentTurn.user.phoneNumber);
-            bot.createConversation(message, function(err, convo) {
+            let phoneNumber = currentTurn.user.phoneNumber
+            module.exports.initiateTurn(bot, phoneNumber);
+            bot.createConversation({channel: phoneNumber}, function(err, convo) {
 
                 convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
                 
@@ -47,33 +47,50 @@ module.exports = {
                     action: TURN_THREAD
                 }, TURN_ERROR_THREAD)
 
-                convo.addQuestion(`Text your response to the following prompt using ONLY ${currentMessageType}:
-    ${previousTurn.message}`, 
-                    [
-                        {
-                            default: true,
-                            callback: async (response, convo) => {
-                                if (turnUtils.isValidResponse(response.Body, currentMessageType)) {
-                                    currentTurn.update({message: response.Body, messageType: currentMessageType, receivedAt: new Date(), isCurrent: false}).then(turn => {
-                                        convo.gotoThread(TURN_SUCCESS_THREAD);
-                                        module.exports.initiateTurnConversation(bot, currentTurn);
-                                    }).catch(err => {
-                                        console.log(err);
-                                        convo.gotoThread(TURN_ERROR_THREAD);
-                                    })
+                module.exports.addTurnQuestion(convo, currentTurn, previousTurn, currentMessageType, bot);
 
-                                } else {
-                                    convo.gotoThread(TURN_FAIL_THREAD);
-                                }
-                            }
-                        }
-                    ], {}, TURN_THREAD
-                );
 
                 convo.activate();
 
                 convo.gotoThread(TURN_THREAD);
             })
         })
+    },
+
+    /**
+     * Create the "question" that a user interacts with to take their turn
+     * @param  {object} convo  Botkit conversation that can ask questions
+     * @param  {object} currentTurn   Database Turn that is being taken.
+     * @param  {object} previousTurn  Database Turn that was just taken.
+     * @param  {object} currentMessageType  What the MessageType of the incoming text SHOULD be.
+     * @param  {object} bot  Botkit bot that can create conversations
+     */
+    addTurnQuestion: (convo, currentTurn, previousTurn, currentMessageType, bot) => {
+        convo.addQuestion(`Text your response to the following prompt using ONLY ${currentMessageType}:
+${previousTurn.message}`, 
+            [{
+                default: true,
+                callback: async (response, convo) => {
+                    if (turnUtils.isValidResponse(response.Body, currentMessageType)) {
+                        try {
+                            let turn = await currentTurn.update({message: response.Body, messageType: currentMessageType, receivedAt: new Date(), isCurrent: false});
+                            convo.gotoThread(TURN_SUCCESS_THREAD);
+                            if (currentTurn.nextUserId != null) {
+                                module.exports.initiateTurnConversation(bot, currentTurn);
+                            } else {
+                                console.log("No next user, game over!!");
+                            }
+                        } catch(err){
+                            console.log(err);
+                            convo.gotoThread(TURN_ERROR_THREAD);
+                        }
+
+                    } else {
+                        convo.gotoThread(TURN_FAIL_THREAD);
+                    }
+                }
+            }], {}, TURN_THREAD
+        );
+        
     }
 }
