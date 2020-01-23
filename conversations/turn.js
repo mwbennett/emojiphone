@@ -11,10 +11,10 @@ module.exports = {
     /**
      * Create the converstaion thread where a user can take their turn
      * @param  {object} bot  Botkit bot that can create conversations
-     * @param  {object} turn  Database Turn that was just taken.
+     * @param  {object} phoneNumber  Phone number that initial prompt should be sent to.
      */
-    initiateTurn: (bot, message) => {
-        bot.say(message, (err, response) => {
+    initiateTurn: (bot, phoneNumber) => {
+        bot.say({text: "Time to take your turn in your game of Emojiphone", channel: phoneNumber}, (err, response) => {
                 if (!err) {
                     // Mark next turn as current
                 }
@@ -31,8 +31,8 @@ module.exports = {
     initiateTurnConversation: (bot, previousTurn) => {
         let currentMessageType = turnUtils.oppositeMessageType(previousTurn.messageType);
         models.turn.findOne({where: {userId: previousTurn.nextUserId, gameId: previousTurn.gameId}, include: [{model: models.user, as: "user"}]}).then(currentTurn => {
-            message = {text: "Time to take your turn in your game of Emojiphone", channel: currentTurn.user.phoneNumber}
-            module.exports.initiateTurn(bot, message);
+            currentTurn.update({isCurrent: true});
+            module.exports.initiateTurn(bot, currentTurn.user.phoneNumber);
             bot.createConversation(message, function(err, convo) {
 
                 convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
