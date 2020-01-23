@@ -46,7 +46,8 @@ module.exports = (sequelize, DataTypes) => {
     },
   }, {});
   turn.associate = function(models) {
-    // associations can be defined here
+    turn.belongsTo(models.user, {as: "user"});
+    turn.belongsTo(models.user, {foreign_key: "nextUserId", as: "nextUser"});
   };
   return turn;
 };
