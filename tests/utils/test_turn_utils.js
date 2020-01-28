@@ -19,17 +19,16 @@ describe('Turn conversation utils', () => {
         })
     })
 
-    describe('getFirstTurn', () => {
+    describe('getCurrentTurn', () => {
         beforeEach(done => {
             testUtils.seedDatabase().then(() => {
-                turnUtils.getFirstTurn();
                 done()
             });
         })
 
-        it.only('it should get the first turn given a game id', (done) => {
-            console.log("the test");
-            done();
+        it('it should get the first turn given a game id', async () => {
+            let turn = await turnUtils.getCurrentTurn(testUtils.variables.gameId);
+            turn.userId.should.equal(testUtils.variables.userIdOne);
         });
     })
 });
