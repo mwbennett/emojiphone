@@ -13,5 +13,8 @@ module.exports = {
         } else {
             return MessageType.text;
         }
+    },
+    getFirstTurn: (gameId) => {
+        
     }
 }
