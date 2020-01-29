@@ -1,5 +1,5 @@
 const setupConversation = require('./conversations/setup');
-// const turnConversation = require('./conversations/turn');
+const turnConversation = require('./conversations/turn');
 const utils = require('./utils/utils');
 const models = require('./models');
 const User = require('./models/user');
@@ -14,7 +14,7 @@ module.exports = {
             utils.controller.createWebhookEndpoints(server, utils.bot);
         })
         // models.turn.findByPk(17, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(currentTurn => {
-            // turnConversation.initiateTurnConversation(utils.bot, currentTurn, "emoji", "Take yer turn, nerd");
+            // turnConversation.initiateTurnConversation(currentTurn, "text", "Take yer turn, nerd");
             // models.turn.findOne({where: {userId: previousTurn.nextUserId, gameId: previousTurn.gameId}, include: [{model: models.user, as: "nextUser"}]}).then(currentTurn => {
             //     console.log(currentTurn);
             // })
