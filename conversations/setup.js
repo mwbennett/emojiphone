@@ -17,23 +17,19 @@ const DUPLICATE_NUMBER_THREAD = 'duplicateThread';
 const INVALID_NUMBER_THREAD = 'invalidNumber';
 
 module.exports = {
-    roundabout: (bot) => {
-        turnConversation.takeFirstTurn(bot, 1);
-    },
     INITIATE_GAME_KEYWORD: "start",
     /**
-     * Create the converstaion thread where a user can start the game
-     * @param  {object} bot  Botkit bot that can create conversations
+     * Create the converstaion thread where a user can start the game.
      * @param  {object} message  The intial message that was passed into the listener, should be INITIATE_GAME_KEYWORD
      */
-    initiateGameConversation: (bot, message) => {
-      bot.createConversation(message, function(err, convo) {
+    initiateGameConversation: (message) => {
+        utils.bot.createConversation(message, function(err, convo) {
         convo.addMessage({
             text: 'Welcome to Emojiphone! Thanks for starting a new game!', 
             action: ADD_CONTACTS_THREAD
         });
 
-        module.exports.addContactsQuestion(convo, bot);
+        module.exports.addContactsQuestion(convo, utils.bot);
 
         convo.addMessage({
             text: 'Successfully added your contact!',
@@ -72,7 +68,7 @@ module.exports = {
       }); 
     },
     // TODO: Pull out callbacks as separate functions
-    addContactsQuestion: (convo, bot) => {
+    addContactsQuestion: (convo) => {
         let users = [];
         
         convo.addQuestion(`Time to set up your game! Text me at least ${setupUtils.MINIMUM_PLAYER_COUNT - 1} total contacts to be able to start your game.
@@ -86,8 +82,7 @@ module.exports = {
                             let turns = await setupUtils.setupGame(users);
                             if (Array.isArray(turns) && turns.length > 0) {
                                 convo.gotoThread(START_GAME_THREAD);
-                                console.log("GAMEID", turns[0].gameId);
-                                turnConversation.takeFirstTurn(bot, turns[0].gameId);
+                                turnConversation.takeFirstTurn(turns[0].gameId);
                             } else {
                                 convo.gotoThread(ERROR_THREAD);
                             }

@@ -1,34 +1,31 @@
-require('dotenv').config();
-var Botkit = require('botkit');
 const setupConversation = require('./conversations/setup');
-const turnConversation = require('./conversations/turn');
+// const turnConversation = require('./conversations/turn');
 const utils = require('./utils/utils');
 const models = require('./models');
 const User = require('./models/user');
 
-// Twilio Botkit 
-var controller = Botkit.twiliosmsbot({
-    debug: true,
-    account_sid: process.env.TWILIO_ACCOUNT_SID,
-    auth_token: process.env.TWILIO_AUTH_TOKEN,
-    twilio_number: process.env.TWILIO_PHONE_NUMBER,
-});
-
 module.exports = {
     setup: function() {
-        var bot = controller.spawn({});
-        controller.setupWebserver(5000, function(err, server) {
+        utils.createBot();
+        utils.controller.setupWebserver(5000, function(err, server) {
             server.get('/', function(req, res) {
                 res.send(':)');
             });1
-            controller.createWebhookEndpoints(server, bot);
+            utils.controller.createWebhookEndpoints(server, utils.bot);
         })
-        // controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message_received', setupConversation.initiateGameConversation);    
-        controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message_received', (bot, message) => {
+        // models.turn.findByPk(17, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(currentTurn => {
+            // turnConversation.initiateTurnConversation(utils.bot, currentTurn, "emoji", "Take yer turn, nerd");
+            // models.turn.findOne({where: {userId: previousTurn.nextUserId, gameId: previousTurn.gameId}, include: [{model: models.user, as: "nextUser"}]}).then(currentTurn => {
+            //     console.log(currentTurn);
+            // })
+        // })
+        // setupConversation.roundabout(utils.bot);
+        utils.controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message_received', (bot, message) => {setupConversation.initiateGameConversation(message)});    
+        // controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message_received', (utils.bot, message) => {
             // Just to get a sample turn in place
-            models.turn.findByPk(16, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(turn => {
-                turnConversation.initiateTurnConversation(bot, message, turn);
-            })
-        });    
+            // models.turn.findByPk(16, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(turn => {
+                // turnConversation.initiateTurnConversation(utils.bot, message, turn);
+            // })
+        // });    
     }
 }
