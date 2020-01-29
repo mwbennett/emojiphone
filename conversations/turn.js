@@ -9,11 +9,11 @@ const TURN_ERROR_THREAD = "error";
 
 module.exports = {
     /**
-     * Create the converstaion thread where a user can take their turn
+     * Send the first message to a user to inform them that their turn has begun
      * @param  {object} bot  Botkit bot that can create conversations
      * @param  {object} phoneNumber  Phone number that initial prompt should be sent to.
      */
-    initiateTurn: (bot, phoneNumber) => {
+    sendInitialPrompt: (bot, phoneNumber) => {
         bot.say({text: "Time to take your turn in your game of Emojiphone", channel: phoneNumber}, (err, response) => {
                 if (!err) {
                     // Mark next turn as current
@@ -21,53 +21,56 @@ module.exports = {
             }
         );
     },
+
     /**
      * Create the converstaion thread where a user can take their turn
      * @param  {object} bot  Botkit bot that can create conversations
-     * @param  {object} message  The intial message that was passed into the listener, should be INITIATE_GAME_KEYWORD
-     * @param  {object} turn  Database Turn that was just taken.
+     * @param  {object} currentTurn  Database Turn that is about to be taken.
+     * @param  {MessageType} previousMessageType  The MessageType of the previous turn (left blank in case people drop out)
+     * @param  {String} turnPrompt  What to tell the user in order for them to take their turn (could vary whether it's the first player or any other)
      */
-    initiateTurnConversation: (bot, previousTurn) => {
-        let currentMessageType = turnUtils.oppositeMessageType(previousTurn.messageType);
-        models.turn.findOne({where: {userId: previousTurn.nextUserId, gameId: previousTurn.gameId}, include: [{model: models.user, as: "user"}]}).then(currentTurn => {
-            currentTurn.update({isCurrent: true});
-            let phoneNumber = currentTurn.user.phoneNumber
-            module.exports.initiateTurn(bot, phoneNumber);
-            bot.createConversation({channel: phoneNumber}, function(err, convo) {
+    initiateTurnConversation: (bot, currentTurn, previousMessageType, turnPrompt) => {
+        let currentMessageType = turnUtils.oppositeMessageType(previousMessageType);
 
-                convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
-                
-                convo.addMessage({
-                    text: `Sorry your response was not written in ONLY ${currentMessageType}. Please try again!`,
-                    action: TURN_THREAD
-                }, TURN_FAIL_THREAD);
+        currentTurn.update({isCurrent: true});
+        let phoneNumber = currentTurn.user.phoneNumber;
+        module.exports.sendInitialPrompt(bot, phoneNumber);
+        bot.createConversation({channel: phoneNumber}, function(err, convo) {
 
-                convo.addMessage({
-                    text: "Sorry, we encountered an error processing your turn. Please try again or contact our support team at TODO.",
-                    action: TURN_THREAD
-                }, TURN_ERROR_THREAD)
+            convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
+            
+            convo.addMessage({
+                text: `Sorry your response was not written in ONLY ${currentMessageType}. Please try again!`,
+                action: TURN_THREAD
+            }, TURN_FAIL_THREAD);
 
-                module.exports.addTurnQuestion(convo, currentTurn, previousTurn, currentMessageType, bot);
+            convo.addMessage({
+                text: "Sorry, we encountered an error processing your turn. Please try again or contact our support team at TODO.",
+                action: TURN_THREAD
+            }, TURN_ERROR_THREAD)
 
 
-                convo.activate();
+            module.exports.addTurnQuestion(convo, currentTurn, turnPrompt, currentMessageType, bot);
 
-                convo.gotoThread(TURN_THREAD);
-            })
+
+            convo.activate();
+
+            convo.gotoThread(TURN_THREAD);
         })
     },
+
+
 
     /**
      * Create the "question" that a user interacts with to take their turn
      * @param  {object} convo  Botkit conversation that can ask questions
      * @param  {object} currentTurn   Database Turn that is being taken.
-     * @param  {object} previousTurn  Database Turn that was just taken.
+     * @param  {String} turnPrompt  What to tell the user in order for them to take their turn
      * @param  {object} currentMessageType  What the MessageType of the incoming text SHOULD be.
      * @param  {object} bot  Botkit bot that can create conversations
      */
-    addTurnQuestion: (convo, currentTurn, previousTurn, currentMessageType, bot) => {
-        convo.addQuestion(`Text your response to the following prompt using ONLY ${currentMessageType}:
-${previousTurn.message}`, 
+    addTurnQuestion: (convo, currentTurn, turnPrompt, currentMessageType, bot) => {
+        convo.addQuestion(turnPrompt, 
             [{
                 default: true,
                 callback: async (response, convo) => {
@@ -76,7 +79,7 @@ ${previousTurn.message}`,
                             let turn = await currentTurn.update({message: response.Body, messageType: currentMessageType, receivedAt: new Date(), isCurrent: false});
                             convo.gotoThread(TURN_SUCCESS_THREAD);
                             if (currentTurn.nextUserId != null) {
-                                module.exports.initiateTurnConversation(bot, currentTurn);
+                                module.exports.beginNextTurn(bot, currentTurn, currentMessageType);
                             } else {
                                 console.log("No next user, game over!!");
                             }
@@ -92,5 +95,18 @@ ${previousTurn.message}`,
             }], {}, TURN_THREAD
         );
         
+    },
+
+    /**
+     * Given the turn that was just completed, begin the next turn
+     * @param  {object} bot  Botkit bot that can create conversations
+     * @param  {object} completedTurn   Database Turn that was just completed.
+     * @param  {object} currentMessageType  What the MessageType of the incoming text SHOULD be.
+     */
+    beginNextTurn: async (bot, completedTurn, currentMessageType) => {
+        let turnPrompt = `Text your response to the following prompt using ONLY ${currentMessageType}:
+${completedTurn.message}`
+        let nextTurn = await models.turn.findOne({where: {userId: completedTurn.nextUserId, gameId: completedTurn.gameId}, include: [{model: models.user, as: "user"}]});
+        module.exports.initiateTurnConversation(bot, nextTurn, currentMessageType, turnPrompt);
     }
 }
