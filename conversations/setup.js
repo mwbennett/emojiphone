@@ -2,6 +2,7 @@ const phone = require("phone");
 
 const utils = require('../utils/utils');
 const setupUtils = require('../utils/setup_utils');
+const turnConversation = require('./turn');
 
 const DONE_ADDING_CONTACTS_KEYWORD = 'done';
 const QUIT_ADDING_CONTACTS_KEYWORD = 'exit';
@@ -16,6 +17,9 @@ const DUPLICATE_NUMBER_THREAD = 'duplicateThread';
 const INVALID_NUMBER_THREAD = 'invalidNumber';
 
 module.exports = {
+    roundabout: (bot) => {
+        turnConversation.takeFirstTurn(bot, 1);
+    },
     INITIATE_GAME_KEYWORD: "start",
     /**
      * Create the converstaion thread where a user can start the game
@@ -29,7 +33,7 @@ module.exports = {
             action: ADD_CONTACTS_THREAD
         });
 
-        module.exports.addContactsQuestion(convo);
+        module.exports.addContactsQuestion(convo, bot);
 
         convo.addMessage({
             text: 'Successfully added your contact!',
@@ -67,7 +71,8 @@ module.exports = {
         convo.activate();
       }); 
     },
-    addContactsQuestion: (convo) => {
+    // TODO: Pull out callbacks as separate functions
+    addContactsQuestion: (convo, bot) => {
         let users = [];
         
         convo.addQuestion(`Time to set up your game! Text me at least ${setupUtils.MINIMUM_PLAYER_COUNT - 1} total contacts to be able to start your game.
@@ -75,11 +80,20 @@ module.exports = {
         Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_ADDING_CONTACTS_KEYWORD}" if you don't want to play.`, [
             {
                 pattern: DONE_ADDING_CONTACTS_KEYWORD,
-                callback: function(response, convo) {
+                callback: async function(response, convo) {
                     if (setupUtils.isGameReady(users)) {
-                        setupUtils.setupGame(users);
-                        // Initiate first turn here?!
-                        convo.gotoThread(START_GAME_THREAD);
+                        try {
+                            let turns = await setupUtils.setupGame(users);
+                            if (Array.isArray(turns) && turns.length > 0) {
+                                convo.gotoThread(START_GAME_THREAD);
+                                console.log("GAMEID", turns[0].gameId);
+                                turnConversation.takeFirstTurn(bot, turns[0].gameId);
+                            } else {
+                                convo.gotoThread(ERROR_THREAD);
+                            }
+                        } catch (err) {
+                            convo.gotoThread(ERROR_THREAD);
+                        }
                     } else {
                         convo.gotoThread(NOT_READY_YET_THREAD);
                     }
