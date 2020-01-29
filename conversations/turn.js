@@ -1,11 +1,13 @@
 const utils = require('../utils/utils');
 const turnUtils = require('../utils/turn_utils');
 const models = require('../models');
+const MessageType = require('../types/message_type');
 
 const TURN_SUCCESS_THREAD = "success";
 const TURN_FAIL_THREAD = "fail";
 const TURN_THREAD = "turn";
 const TURN_ERROR_THREAD = "error";
+const INITIAL_TURN_PROMPT = "Welcome to Emojiphone! You're the first player, so all you need to do is respond with a phrase or sentence that is easy to describe with emojis!";
 
 module.exports = {
     /**
@@ -26,11 +28,10 @@ module.exports = {
      * Create the converstaion thread where a user can take their turn
      * @param  {object} bot  Botkit bot that can create conversations
      * @param  {object} currentTurn  Database Turn that is about to be taken.
-     * @param  {MessageType} previousMessageType  The MessageType of the previous turn (left blank in case people drop out)
+     * @param  {MessageType} currentMessageType  The MessageType of the current type (left blank in case people drop out)
      * @param  {String} turnPrompt  What to tell the user in order for them to take their turn (could vary whether it's the first player or any other)
      */
-    initiateTurnConversation: (bot, currentTurn, previousMessageType, turnPrompt) => {
-        let currentMessageType = turnUtils.oppositeMessageType(previousMessageType);
+    initiateTurnConversation: (bot, currentTurn, currentMessageType, turnPrompt) => {
 
         currentTurn.update({isCurrent: true});
         let phoneNumber = currentTurn.user.phoneNumber;
@@ -50,7 +51,7 @@ module.exports = {
             }, TURN_ERROR_THREAD)
 
 
-            module.exports.addTurnQuestion(convo, currentTurn, turnPrompt, currentMessageType, bot);
+            module.exports.addTurnQuestion(bot, convo, currentTurn, turnPrompt, currentMessageType);
 
 
             convo.activate();
@@ -63,13 +64,13 @@ module.exports = {
 
     /**
      * Create the "question" that a user interacts with to take their turn
+     * @param  {object} bot  Botkit bot that can create conversations
      * @param  {object} convo  Botkit conversation that can ask questions
      * @param  {object} currentTurn   Database Turn that is being taken.
      * @param  {String} turnPrompt  What to tell the user in order for them to take their turn
      * @param  {object} currentMessageType  What the MessageType of the incoming text SHOULD be.
-     * @param  {object} bot  Botkit bot that can create conversations
      */
-    addTurnQuestion: (convo, currentTurn, turnPrompt, currentMessageType, bot) => {
+    addTurnQuestion: (bot, convo, currentTurn, turnPrompt, currentMessageType) => {
         convo.addQuestion(turnPrompt, 
             [{
                 default: true,
@@ -101,12 +102,24 @@ module.exports = {
      * Given the turn that was just completed, begin the next turn
      * @param  {object} bot  Botkit bot that can create conversations
      * @param  {object} completedTurn   Database Turn that was just completed.
-     * @param  {object} currentMessageType  What the MessageType of the incoming text SHOULD be.
      */
-    beginNextTurn: async (bot, completedTurn, currentMessageType) => {
-        let turnPrompt = `Text your response to the following prompt using ONLY ${currentMessageType}:
+    beginNextTurn: async (bot, completedTurn) => {
+        let nextMessageType = turnUtils.oppositeMessageType(completedTurn.messageType);
+        let turnPrompt = `Text your response to the following prompt using ONLY ${nextMessageType}:
 ${completedTurn.message}`
         let nextTurn = await models.turn.findOne({where: {userId: completedTurn.nextUserId, gameId: completedTurn.gameId}, include: [{model: models.user, as: "user"}]});
-        module.exports.initiateTurnConversation(bot, nextTurn, currentMessageType, turnPrompt);
+        module.exports.initiateTurnConversation(bot, nextTurn, nextMessageType, turnPrompt);
+    },
+
+    /**
+     * Given the game identifier, start the first turn of the game!
+     * @param  {object} bot  Botkit bot that can create conversations
+     * @param  {integer} gameId   gameId of game that needs to begin
+     */
+    // TODO: Use twilioApp.bot for everything? Or make a separate file??
+    // TODO: Try/catches for asyncs
+    takeFirstTurn: async (bot, gameId) => {
+        let currentTurn = await turnUtils.getCurrentTurn(gameId);
+        module.exports.initiateTurnConversation(bot, currentTurn, MessageType.text, INITIAL_TURN_PROMPT);
     }
 }
