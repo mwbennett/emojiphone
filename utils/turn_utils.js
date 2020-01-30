@@ -1,4 +1,5 @@
 const MessageType = require('../types/message_type');
+const models = require('../models');
 
 module.exports = {
     isValidResponse: (response, messageType) => {
@@ -13,5 +14,8 @@ module.exports = {
         } else {
             return MessageType.text;
         }
+    },
+    getCurrentTurn: async (gameId) => {
+        return await models.turn.findOne({where: {gameId: gameId, isCurrent: true}, include: [{model: models.user, as: "user"}]})
     }
 }

@@ -2,6 +2,7 @@ const phone = require("phone");
 
 const utils = require('../utils/utils');
 const setupUtils = require('../utils/setup_utils');
+const turnConversation = require('./turn');
 
 const DONE_ADDING_CONTACTS_KEYWORD = 'done';
 const QUIT_ADDING_CONTACTS_KEYWORD = 'exit';
@@ -18,12 +19,11 @@ const INVALID_NUMBER_THREAD = 'invalidNumber';
 module.exports = {
     INITIATE_GAME_KEYWORD: "start",
     /**
-     * Create the converstaion thread where a user can start the game
-     * @param  {object} bot  Botkit bot that can create conversations
+     * Create the converstaion thread where a user can start the game.
      * @param  {object} message  The intial message that was passed into the listener, should be INITIATE_GAME_KEYWORD
      */
-    initiateGameConversation: (bot, message) => {
-      bot.createConversation(message, function(err, convo) {
+    initiateGameConversation: (message) => {
+        utils.bot.createConversation(message, function(err, convo) {
         convo.addMessage({
             text: 'Welcome to Emojiphone! Thanks for starting a new game!', 
             action: ADD_CONTACTS_THREAD
@@ -67,6 +67,7 @@ module.exports = {
         convo.activate();
       }); 
     },
+    // TODO: Pull out callbacks as separate functions
     addContactsQuestion: (convo) => {
         let users = [];
         
@@ -75,11 +76,19 @@ module.exports = {
         Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_ADDING_CONTACTS_KEYWORD}" if you don't want to play.`, [
             {
                 pattern: DONE_ADDING_CONTACTS_KEYWORD,
-                callback: function(response, convo) {
+                callback: async function(response, convo) {
                     if (setupUtils.isGameReady(users)) {
-                        setupUtils.setupGame(users);
-                        // Initiate first turn here?!
-                        convo.gotoThread(START_GAME_THREAD);
+                        try {
+                            let turns = await setupUtils.setupGame(users);
+                            if (Array.isArray(turns) && turns.length > 0) {
+                                convo.gotoThread(START_GAME_THREAD);
+                                turnConversation.takeFirstTurn(turns[0].gameId);
+                            } else {
+                                convo.gotoThread(ERROR_THREAD);
+                            }
+                        } catch (err) {
+                            convo.gotoThread(ERROR_THREAD);
+                        }
                     } else {
                         convo.gotoThread(NOT_READY_YET_THREAD);
                     }
