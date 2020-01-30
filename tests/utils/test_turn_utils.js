@@ -28,7 +28,7 @@ describe('Turn conversation utils', () => {
             });
         })
 
-        it('it should get the first turn given a game id', async () => {
+        it('it should get the current turn given a game id', async () => {
             let turn = await turnUtils.getCurrentTurn(testUtils.variables.gameId);
             turn.user.id.should.equal(testUtils.variables.userIdOne);
         });

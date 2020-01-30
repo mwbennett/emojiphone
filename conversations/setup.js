@@ -29,7 +29,7 @@ module.exports = {
             action: ADD_CONTACTS_THREAD
         });
 
-        module.exports.addContactsQuestion(convo, utils.bot);
+        module.exports.addContactsQuestion(convo);
 
         convo.addMessage({
             text: 'Successfully added your contact!',
