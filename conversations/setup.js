@@ -24,48 +24,49 @@ module.exports = {
      */
     initiateGameConversation: (message) => {
         utils.bot.createConversation(message, function(err, convo) {
-        convo.addMessage({
-            text: 'Welcome to Emojiphone! Thanks for starting a new game!', 
-            action: ADD_CONTACTS_THREAD
-        });
+            console.log(message);
+            convo.addMessage({
+                text: 'Welcome to Emojiphone! Thanks for starting a new game!', 
+                action: ADD_CONTACTS_THREAD
+            });
 
-        module.exports.addContactsQuestion(convo);
+            module.exports.addContactsQuestion(convo);
 
-        convo.addMessage({
-            text: 'Successfully added your contact!',
-            action: ADD_CONTACTS_THREAD
-        }, ADDED_PHONE_NUMBER_THREAD);
+            convo.addMessage({
+                text: 'Successfully added your contact!',
+                action: ADD_CONTACTS_THREAD
+            }, ADDED_PHONE_NUMBER_THREAD);
 
-        convo.addMessage({
-            text: `Sorry, I couldn't understand you. Please send a contact, or say "${DONE_ADDING_CONTACTS_KEYWORD}" or "${QUIT_GAME_THREAD}".`,
-            action: ADD_CONTACTS_THREAD
-        }, INVALID_INPUT_THREAD);
+            convo.addMessage({
+                text: `Sorry, I couldn't understand you. Please send a contact, or say "${DONE_ADDING_CONTACTS_KEYWORD}" or "${QUIT_GAME_THREAD}".`,
+                action: ADD_CONTACTS_THREAD
+            }, INVALID_INPUT_THREAD);
 
-        convo.addMessage({
-            text: "Sorry, we encountered an error processing your contact. Please try again or contact our support team at TODO.",
-            action: ADD_CONTACTS_THREAD
-        }, ERROR_THREAD);
+            convo.addMessage({
+                text: "Sorry, we encountered an error processing your contact. Please try again or contact our support team at TODO.",
+                action: ADD_CONTACTS_THREAD
+            }, ERROR_THREAD);
 
-        convo.addMessage({
-            text: "Sorry, you've already added someone with that phone number. Please choose a contact with a phone number different from any you've added so far",
-            action: ADD_CONTACTS_THREAD
-        }, DUPLICATE_NUMBER_THREAD);
+            convo.addMessage({
+                text: "Sorry, you've already added someone with that phone number. Please choose a contact with a phone number different from any you've added so far",
+                action: ADD_CONTACTS_THREAD
+            }, DUPLICATE_NUMBER_THREAD);
 
-        convo.addMessage({
-            text: "Sorry, the phone number for that contact is invalid. Please try another contact with a valid US-based phone number.",
-            action: ADD_CONTACTS_THREAD
-        }, INVALID_NUMBER_THREAD);
-        
-        convo.addMessage(`Ok, you will not start the game. Text "${module.exports.INITIATE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
-        convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
+            convo.addMessage({
+                text: "Sorry, the phone number for that contact is invalid. Please try another contact with a valid US-based phone number.",
+                action: ADD_CONTACTS_THREAD
+            }, INVALID_NUMBER_THREAD);
+            
+            convo.addMessage(`Ok, you will not start the game. Text "${module.exports.INITIATE_GAME_KEYWORD}" to begin a new game!`, QUIT_GAME_THREAD);
+            convo.addMessage('Ok, we will begin the game!', START_GAME_THREAD);
 
-        convo.addMessage({
-            text: `Oops! You don't have enough other players. Please add at least ${setupUtils.MINIMUM_PLAYER_COUNT - 1} total contacts.`,
-            action: ADD_CONTACTS_THREAD,
-        }, NOT_READY_YET_THREAD);
+            convo.addMessage({
+                text: `Oops! You don't have enough other players. Please add at least ${setupUtils.MINIMUM_PLAYER_COUNT - 1} total contacts.`,
+                action: ADD_CONTACTS_THREAD,
+            }, NOT_READY_YET_THREAD);
 
-        convo.activate();
-      }); 
+            convo.activate();
+        }); 
     },
     // TODO: Pull out callbacks as separate functions
     addContactsQuestion: (convo) => {

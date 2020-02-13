@@ -2,6 +2,7 @@ const vCard = require('vcard');
 var Botkit = require('botkit');
 require('dotenv').config();
 var fetch = require('node-fetch');
+const models = require('../models');
 
 module.exports = {
     bot: {},
@@ -18,15 +19,15 @@ module.exports = {
         const textContent = await response.text();
 
         return new Promise((resolve, reject) => {
-        card.readData(textContent, function(err, json) {
-            names = json.N.split(',');
-            resolve({
-                firstName: names[1].trim(),
-                lastName: names[0].trim(),
-                phoneNumber: json.TEL.value
+            card.readData(textContent, function(err, json) {
+                names = json.N.split(',');
+                resolve({
+                    firstName: names[1].trim(),
+                    lastName: names[0].trim(),
+                    phoneNumber: json.TEL.value
+                });
             });
         });
-      });
     },
     createBot: () => {
         module.exports.controller = Botkit.twiliosmsbot({
@@ -37,5 +38,9 @@ module.exports = {
         });
 
         module.exports.bot = module.exports.controller.spawn({});
+    },
+    getUserByPhoneNumber: async (phoneNumber) => {
+        let user = await models.user.findOne({where: {phoneNumber: phoneNumber}});        
+        return user;
     }
 }
