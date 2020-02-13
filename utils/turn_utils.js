@@ -2,7 +2,7 @@ const MessageType = require('../types/message_type');
 const models = require('../models');
 const emojiRegex = require('emoji-regex');
 const emojiReg = emojiRegex();
-const textRegex = /[a-zA-Z0-9\.\!\+\$\#\@\_\&\-\+\(\)\/\*\"\'\:\;\!\?\~\`\|\•\√\π\÷\×\¶\∆\£\¢\€\¥\^\°\=\{\}\\\]\[\✓\%\<\>\%\/\*\-\+\ç\ß\à\á\â\ä\æ\ã\å\ā\è\é\ē\ê\ë\û\ú\ù\ü\ū\î\ì\ï\í\ī\ó\ø\œ\ō\ô\ö\õ\ò\ñ]+/
+const textReg = /[a-zA-Z0-9\.\!\+\$\#\@\_\&\-\+\(\)\/\*\"\'\:\;\!\?\~\`\|\•\√\π\÷\×\¶\∆\£\¢\€\¥\^\°\=\{\}\\\]\[\✓\%\<\>\%\/\*\-\+\ç\ß\à\á\â\ä\æ\ã\å\ā\è\é\ē\ê\ë\û\ú\ù\ü\ū\î\ì\ï\í\ī\ó\ø\œ\ō\ô\ö\õ\ò\ñ]+/
 
 module.exports = {
     isValidResponse: (response, messageType) => {
@@ -11,7 +11,7 @@ module.exports = {
             return !emojiReg.test(response);
         }
         else if (messageType == MessageType.emoji) {
-            return !textRegex.test(response);
+            return !textReg.test(response);
         }
         return false;
     },
