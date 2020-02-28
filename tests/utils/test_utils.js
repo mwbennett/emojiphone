@@ -19,7 +19,7 @@ let sampleMessage = {
 
 const FIRST_NAME = "Aaatest";
 const LAST_NAME = "Tes";
-const PHONE_NUMBER = "919-868-4114";
+const PHONE_NUMBER = "+19198684114";
 
 
 describe('utils', () => {
@@ -66,6 +66,36 @@ describe('utils', () => {
             }
             should.exist(error);
             error.should.be.an("Error");
+        });
+    });
+    describe('addUser', () => {
+        beforeEach(done => {
+            testUtils.truncateDatabase().then(() => {
+                done();
+            });
+        })
+        it('it should be able to add a user', async () => {
+            let user = await utils.addUser(FIRST_NAME + " " + LAST_NAME, PHONE_NUMBER);
+            user.should.have.property("firstName");
+            user.firstName.should.equal(FIRST_NAME);
+            user.lastName.should.equal(LAST_NAME);
+            user.phoneNumber.should.equal(PHONE_NUMBER);
+        });
+
+        it('it should handle a name string with just a first name', async () => {
+            let user = await utils.addUser(FIRST_NAME, PHONE_NUMBER);
+            user.firstName.should.equal(FIRST_NAME);
+            should.not.exist(user.lastName);
+            user.phoneNumber.should.equal(PHONE_NUMBER);
+        });
+
+        it('it should handle a weird last name with spaces', async () => {
+            let weirdLastName = LAST_NAME + " Stephens the third";
+            let user = await utils.addUser(FIRST_NAME + " " + weirdLastName, PHONE_NUMBER);
+            user.should.have.property("firstName");
+            user.firstName.should.equal(FIRST_NAME);
+            user.lastName.should.equal(weirdLastName);
+            user.phoneNumber.should.equal(PHONE_NUMBER);
         });
     })
 });

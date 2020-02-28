@@ -42,5 +42,23 @@ module.exports = {
     getUserByPhoneNumber: async (phoneNumber) => {
         let user = await models.user.findOne({where: {phoneNumber: phoneNumber}});        
         return user;
+    },
+    /**
+     * Create a new user in the database
+     * @param  {String} nameString String containing at least a first name, and potentially a last name
+     * @param  {String phoneNumber} phoneNumber User's phone number.
+
+    */
+    addUser: async (nameString, phoneNumber) => {
+        let nameStrings = nameString.split(' ');
+        let user = {
+            firstName: nameStrings[0],
+            phoneNumber: phoneNumber            
+        }
+        if (nameStrings.length > 1) {
+            user["lastName"] = nameString.substring(nameString.indexOf(' ') + 1);
+        }
+        let dbUser = await models.user.create(user)
+        return dbUser;
     }
 }
