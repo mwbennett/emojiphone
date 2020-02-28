@@ -52,7 +52,7 @@ module.exports = {
 
             module.exports.addUserQuestion(convo, phoneNumber);
 
-            module.exports.addContactsQuestion(convo);
+            module.exports.addContactsQuestion(convo, user, phoneNumber);
 
             convo.addMessage({
                 text: "Great, now let's get started setting up your first game!",
@@ -125,9 +125,9 @@ Text "${QUIT_ADDING_CONTACTS_KEYWORD}" at any time to quit the setup process.`, 
         ], {}, ADD_USER_THREAD);
     },
     // TODO: Pull out callbacks as separate functions
-    addContactsQuestion: (convo) => {
+    addContactsQuestion: async (convo, currentUser, phoneNumber) => {
         let users = [];
-        
+
         convo.addQuestion(`Time to set up your game! Text me at least ${setupUtils.MINIMUM_PLAYER_COUNT - 1} total contacts to be able to start your game.
 
         Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_ADDING_CONTACTS_KEYWORD}" if you don't want to play.`, [
@@ -136,7 +136,11 @@ Text "${QUIT_ADDING_CONTACTS_KEYWORD}" at any time to quit the setup process.`, 
                 callback: async (response, convo) => {
                     if (setupUtils.isGameReady(users)) {
                         try {
-                            let turns = await setupUtils.setupGame(users);
+                            if (!currentUser) {
+                                currentUser = await utils.getUserByPhoneNumber(phoneNumber);
+                            }
+
+                            let turns = await setupUtils.setupGame(users, [[currentUser]]);
                             if (Array.isArray(turns) && turns.length > 0) {
                                 convo.gotoThread(START_GAME_THREAD);
                                 turnConversation.takeFirstTurn(turns[0].gameId);
@@ -144,6 +148,7 @@ Text "${QUIT_ADDING_CONTACTS_KEYWORD}" at any time to quit the setup process.`, 
                                 convo.gotoThread(ERROR_THREAD);
                             }
                         } catch (err) {
+                            console.log(err);
                             convo.gotoThread(ERROR_THREAD);
                         }
                     } else {
