@@ -15,6 +15,18 @@ const ADDED_PHONE_NUMBER_THREAD = 'addedPhone';
 const ERROR_THREAD = 'errorThread';
 const DUPLICATE_NUMBER_THREAD = 'duplicateThread';
 const INVALID_NUMBER_THREAD = 'invalidNumber';
+const ADD_USER_THREAD = 'addUser';
+const ADDED_FIRST_NAME_THREAD = 'addedFirstName';
+const ADDED_USER_THREAD = 'addedUser';
+const CONTACT_ERROR_THREAD = 'contactError';
+const NAME_PATTERN = /^[a-zA-Z][a-zA-Z\-\s]+$/;
+
+let quitGameResponse = {
+    pattern: QUIT_ADDING_CONTACTS_KEYWORD,
+    callback: function(response, convo) {
+        convo.gotoThread(QUIT_GAME_THREAD);
+    },
+}
 
 module.exports = {
     INITIATE_GAME_KEYWORD: "start",
@@ -22,15 +34,35 @@ module.exports = {
      * Create the converstaion thread where a user can start the game.
      * @param  {object} message  The intial message that was passed into the listener, should be INITIATE_GAME_KEYWORD
      */
-    initiateGameConversation: (message) => {
-        utils.bot.createConversation(message, function(err, convo) {
-            console.log(message);
-            convo.addMessage({
-                text: 'Welcome to Emojiphone! Thanks for starting a new game!', 
-                action: ADD_CONTACTS_THREAD
-            });
+    initiateGameConversation: async (message) => {
+        utils.bot.createConversation(message, async (err, convo) => {
+            let user = await utils.getUserByPhoneNumber(phone(message.from));
+            console.log("Got a user", user);
+            if (!user) {
+                convo.addMessage({
+                    text: 'Welcome to Emojiphone! Thanks for starting a new game!', 
+                    action: ADD_USER_THREAD
+                });    
+            } else {
+                convo.addMessage({
+                    text: `Welcome back to Emojiphone, ${user.firstName}! Thanks for starting a new game!`, 
+                    action: ADD_CONTACTS_THREAD
+                });
+            }
+
+            module.exports.addUserQuestion(convo);
 
             module.exports.addContactsQuestion(convo);
+
+            convo.addMessage({
+                text: "Great, now let's get started setting up your first game!",
+                action: ADD_CONTACTS_THREAD
+            }, ADDED_USER_THREAD);
+
+            convo.addMessage({
+                text: 'Please provide us with your name; no numbers or special characters!',
+                action: ADD_USER_THREAD
+            }, CONTACT_ERROR_THREAD);
 
             convo.addMessage({
                 text: 'Successfully added your contact!',
@@ -38,7 +70,7 @@ module.exports = {
             }, ADDED_PHONE_NUMBER_THREAD);
 
             convo.addMessage({
-                text: `Sorry, I couldn't understand you. Please send a contact, or say "${DONE_ADDING_CONTACTS_KEYWORD}" or "${QUIT_GAME_THREAD}".`,
+                text: `Sorry, I couldn't understand you. Please send a contact, or say "${DONE_ADDING_CONTACTS_KEYWORD}" or "${QUIT_ADDING_CONTACTS_KEYWORD}".`,
                 action: ADD_CONTACTS_THREAD
             }, INVALID_INPUT_THREAD);
 
@@ -68,6 +100,24 @@ module.exports = {
             convo.activate();
         }); 
     },
+    addUserQuestion: (convo) => {
+        let firstName; let lastName;
+        convo.addQuestion(`Since this is your first time playing, we'll need a way to identify you. What's your name (you may enter first and last)?
+
+Text "${QUIT_ADDING_CONTACTS_KEYWORD}" at any time to quit the setup process.`, [
+            quitGameResponse,
+            {
+                default: true,
+                callback: (response, convo) => {
+                    if (NAME_PATTERN.test(response.Body)) {
+                        convo.gotoThread(ADDED_USER_THREAD);
+                    } else {
+                        convo.gotoThread(CONTACT_ERROR_THREAD);
+                    }
+                }
+            }
+        ], {}, ADD_USER_THREAD);
+    },
     // TODO: Pull out callbacks as separate functions
     addContactsQuestion: (convo) => {
         let users = [];
@@ -77,7 +127,7 @@ module.exports = {
         Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_ADDING_CONTACTS_KEYWORD}" if you don't want to play.`, [
             {
                 pattern: DONE_ADDING_CONTACTS_KEYWORD,
-                callback: async function(response, convo) {
+                callback: async (response, convo) => {
                     if (setupUtils.isGameReady(users)) {
                         try {
                             let turns = await setupUtils.setupGame(users);
@@ -94,13 +144,7 @@ module.exports = {
                         convo.gotoThread(NOT_READY_YET_THREAD);
                     }
                 },
-            },
-            {
-                pattern: QUIT_ADDING_CONTACTS_KEYWORD,
-                callback: function(response, convo) {
-                    convo.gotoThread(QUIT_GAME_THREAD);
-                },
-            },
+            }, quitGameResponse,
             {
                 default: true,
                 callback: async function(response, convo) {
