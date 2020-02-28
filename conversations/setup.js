@@ -36,8 +36,8 @@ module.exports = {
      */
     initiateGameConversation: async (message) => {
         utils.bot.createConversation(message, async (err, convo) => {
-            let user = await utils.getUserByPhoneNumber(phone(message.from));
-            console.log("Got a user", user);
+            let phoneNumber = phone(message.from)[0];
+            let user = await utils.getUserByPhoneNumber(phoneNumber);
             if (!user) {
                 convo.addMessage({
                     text: 'Welcome to Emojiphone! Thanks for starting a new game!', 
@@ -50,7 +50,7 @@ module.exports = {
                 });
             }
 
-            module.exports.addUserQuestion(convo);
+            module.exports.addUserQuestion(convo, phoneNumber);
 
             module.exports.addContactsQuestion(convo);
 
@@ -75,7 +75,7 @@ module.exports = {
             }, INVALID_INPUT_THREAD);
 
             convo.addMessage({
-                text: "Sorry, we encountered an error processing your contact. Please try again or contact our support team at TODO.",
+                text: "Sorry, we encountered an error processing your request. Please try again or contact our support team at TODO.",
                 action: ADD_CONTACTS_THREAD
             }, ERROR_THREAD);
 
@@ -100,7 +100,7 @@ module.exports = {
             convo.activate();
         }); 
     },
-    addUserQuestion: (convo) => {
+    addUserQuestion: (convo, phoneNumber) => {
         let firstName; let lastName;
         convo.addQuestion(`Since this is your first time playing, we'll need a way to identify you. What's your name (you may enter first and last)?
 
@@ -108,9 +108,15 @@ Text "${QUIT_ADDING_CONTACTS_KEYWORD}" at any time to quit the setup process.`, 
             quitGameResponse,
             {
                 default: true,
-                callback: (response, convo) => {
+                callback: async (response, convo) => {
                     if (NAME_PATTERN.test(response.Body)) {
-                        convo.gotoThread(ADDED_USER_THREAD);
+                        try {
+                            await utils.addUser(response.Body, phoneNumber);
+                            convo.gotoThread(ADDED_USER_THREAD);
+                        } catch (e) {
+                            console.log(e);
+                            convo.gotoThread(ERROR_THREAD);
+                        }
                     } else {
                         convo.gotoThread(CONTACT_ERROR_THREAD);
                     }
