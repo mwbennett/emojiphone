@@ -7,8 +7,8 @@ module.exports = {
     MINIMUM_PLAYER_COUNT: 3,
     /**
     * Setup the game by instantiating users and turns
-    * @param  {Object[]} newUsers  List of "User" objects to include in the game.
-    * @param  {Object[]} existingUsers  List of users (each contained within it's own list of one item) from the database to include in the game.
+    * @param  {Object[]} newUsers  List of "User" objects to create in the database and then include in the game.
+    * @param  {Object[]} existingUsers  List of users (each contained within it's own list of one item) already existing in the database to include in the game.
     */
     setupGame: (newUsers, existingUsers) => {
         let promises = [];

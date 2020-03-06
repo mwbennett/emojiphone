@@ -5,7 +5,7 @@ const setupUtils = require('../utils/setup_utils');
 const turnConversation = require('./turn');
 
 const DONE_ADDING_CONTACTS_KEYWORD = 'done';
-const QUIT_ADDING_CONTACTS_KEYWORD = 'exit';
+const QUIT_SETUP_KEYWORD = 'exit';
 const START_GAME_THREAD = 'startGame';
 const NOT_READY_YET_THREAD = 'notReadyYet';
 const QUIT_GAME_THREAD = 'quitGame';
@@ -16,13 +16,12 @@ const ERROR_THREAD = 'errorThread';
 const DUPLICATE_NUMBER_THREAD = 'duplicateThread';
 const INVALID_NUMBER_THREAD = 'invalidNumber';
 const ADD_USER_THREAD = 'addUser';
-const ADDED_FIRST_NAME_THREAD = 'addedFirstName';
 const ADDED_USER_THREAD = 'addedUser';
 const CONTACT_ERROR_THREAD = 'contactError';
 const NAME_PATTERN = /^[a-zA-Z][a-zA-Z\-\s]+$/;
 
 let quitGameResponse = {
-    pattern: QUIT_ADDING_CONTACTS_KEYWORD,
+    pattern: QUIT_SETUP_KEYWORD,
     callback: function(response, convo) {
         convo.gotoThread(QUIT_GAME_THREAD);
     },
@@ -32,12 +31,17 @@ module.exports = {
     INITIATE_GAME_KEYWORD: "start",
     /**
      * Create the converstaion thread where a user can start the game.
-     * @param  {object} message  The intial message that was passed into the listener, should be INITIATE_GAME_KEYWORD
+     * @param  {object} message  The intial BotKit message that was passed into the listener
      */
     initiateGameConversation: async (message) => {
         utils.bot.createConversation(message, async (err, convo) => {
             let phoneNumber = phone(message.from)[0];
-            let user = await utils.getUserByPhoneNumber(phoneNumber);
+            let user;
+            try {
+                user = await utils.getUserByPhoneNumber(phoneNumber);
+            } catch (err) {
+                console.log(err);
+            }
             if (!user) {
                 convo.addMessage({
                     text: 'Welcome to Emojiphone! Thanks for starting a new game!', 
@@ -50,7 +54,7 @@ module.exports = {
                 });
             }
 
-            module.exports.addUserQuestion(convo, phoneNumber);
+            module.exports.addCreatorAsUserQuestion(convo, phoneNumber);
 
             module.exports.addContactsQuestion(convo, user, phoneNumber);
 
@@ -70,7 +74,7 @@ module.exports = {
             }, ADDED_PHONE_NUMBER_THREAD);
 
             convo.addMessage({
-                text: `Sorry, I couldn't understand you. Please send a contact, or say "${DONE_ADDING_CONTACTS_KEYWORD}" or "${QUIT_ADDING_CONTACTS_KEYWORD}".`,
+                text: `Sorry, I couldn't understand you. Please send a contact, or say "${DONE_ADDING_CONTACTS_KEYWORD}" or "${QUIT_SETUP_KEYWORD}".`,
                 action: ADD_CONTACTS_THREAD
             }, INVALID_INPUT_THREAD);
 
@@ -100,11 +104,11 @@ module.exports = {
             convo.activate();
         }); 
     },
-    addUserQuestion: (convo, phoneNumber) => {
+    addCreatorAsUserQuestion: (convo, phoneNumber) => {
         let firstName; let lastName;
         convo.addQuestion(`Since this is your first time playing, we'll need a way to identify you. What's your name (you may enter first and last)?
 
-Text "${QUIT_ADDING_CONTACTS_KEYWORD}" at any time to quit the setup process.`, [
+Text "${QUIT_SETUP_KEYWORD}" at any time to quit the setup process.`, [
             quitGameResponse,
             {
                 default: true,
@@ -113,8 +117,8 @@ Text "${QUIT_ADDING_CONTACTS_KEYWORD}" at any time to quit the setup process.`, 
                         try {
                             await utils.addUser(response.Body, phoneNumber);
                             convo.gotoThread(ADDED_USER_THREAD);
-                        } catch (e) {
-                            console.log(e);
+                        } catch (err) {
+                            console.log(err);
                             convo.gotoThread(ERROR_THREAD);
                         }
                     } else {
@@ -130,7 +134,7 @@ Text "${QUIT_ADDING_CONTACTS_KEYWORD}" at any time to quit the setup process.`, 
 
         convo.addQuestion(`Time to set up your game! Text me at least ${setupUtils.MINIMUM_PLAYER_COUNT - 1} total contacts to be able to start your game.
 
-        Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_ADDING_CONTACTS_KEYWORD}" if you don't want to play.`, [
+        Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUIT_SETUP_KEYWORD}" if you don't want to play.`, [
             {
                 pattern: DONE_ADDING_CONTACTS_KEYWORD,
                 callback: async (response, convo) => {
