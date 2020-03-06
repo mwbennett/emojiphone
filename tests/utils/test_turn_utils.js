@@ -78,7 +78,7 @@ describe('Turn conversation utils', () => {
             done();
         });
     })
-    describe.only('getUsersAndMessagesFromGameId', () => {
+    describe('getUsersAndMessagesFromGameId', () => {
 
         beforeEach(done => {
             testUtils.seedDatabase().then(() => {
@@ -109,6 +109,5 @@ describe('Turn conversation utils', () => {
             usersAndMessages[1].message.should.equal(testUtils.variables.secondMessage);
             usersAndMessages[2].message.should.equal(testUtils.variables.thirdMessage);
         });
-
     })
 });

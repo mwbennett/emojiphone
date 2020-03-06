@@ -45,5 +45,22 @@ module.exports = {
                 ]
             }
         )
+    },
+    getEndGameMessage: async (gameId) => {
+        let usersAndMessages = await module.exports.getUsersAndMessagesFromGameId(gameId);
+
+        let message = `Round completed! Here's the full transcript:
+        `
+
+        for (let userMessage of usersAndMessages) {
+            let user = userMessage.user;
+            let name = user.firstName;
+            name += (user.lastName) ? " " + user.lastName : "";
+            message += `
+${name}: ${userMessage.message}`
+        }
+
+        return message;
+
     }
 }

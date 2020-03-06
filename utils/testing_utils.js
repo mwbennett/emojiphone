@@ -10,8 +10,8 @@ const variables = {
     userIdOne: 1,userIdTwo: 2,userIdThree: 3,
     gameId: 1,
     completedGameId: 2,
-    firstMessage: "I'm a fruit",
-    thirdMessage: "I went to the store",
+    firstMessage: "I went to the store",
+    thirdMessage: "I'm a fruit!",
     secondMessage: "😁🍎🍐🥝",
 };
 
@@ -19,7 +19,6 @@ const users = [
     {
         id: variables.userIdOne,
         firstName: "Blerp",
-        lastName: "Person",
         phoneNumber: variables.phoneNumbers[0]
     },
     {
