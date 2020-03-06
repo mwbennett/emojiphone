@@ -72,10 +72,42 @@ describe('Turn conversation utils', () => {
                 🚑🚔🎒`, MessageType.emoji).should.equal(true);
             done();
         });
-        it('it should block for a weird character', (done) => {
+        it('it should return false for a weird character', (done) => {
             let weirdies = "👮👳🏄🧟  👩‍🍳🧓€";
             turnUtils.isValidResponse(weirdies, MessageType.text).should.equal(false);
             done();
+        });
+    })
+    describe('getUsersAndMessagesFromGameId', () => {
+
+        beforeEach(done => {
+            testUtils.seedDatabase().then(() => {
+                done()
+            });
+        })
+
+        it("it should return a list of users' names and their messages based on a gameId", async () => {
+            let usersAndMessages = await turnUtils.getUsersAndMessagesFromGameId(testUtils.variables.completedGameId);
+
+            usersAndMessages.should.be.a("array");
+            usersAndMessages[0].should.have.property("message");
+            usersAndMessages[0].should.have.property("user");
+            usersAndMessages[0].user.should.have.property("firstName");
+            usersAndMessages[0].user.should.have.property("lastName");
+        });
+        it('it should ignore any turns that were skipped', async () => {
+            let usersAndMessages = await turnUtils.getUsersAndMessagesFromGameId(testUtils.variables.completedGameId);
+
+            // Live game includes one skipped turn
+            usersAndMessages.length.should.equal(testUtils.variables.liveGameTurns.length - 1);
+            
+        });
+        it('it should return the turns in the correct order', async () => {
+            let usersAndMessages = await turnUtils.getUsersAndMessagesFromGameId(testUtils.variables.completedGameId);
+
+            usersAndMessages[0].message.should.equal(testUtils.variables.firstMessage);
+            usersAndMessages[1].message.should.equal(testUtils.variables.secondMessage);
+            usersAndMessages[2].message.should.equal(testUtils.variables.thirdMessage);
         });
     })
 });
