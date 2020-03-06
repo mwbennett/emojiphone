@@ -95,11 +95,19 @@ describe('Turn conversation utils', () => {
             usersAndMessages[0].user.should.have.property("firstName");
             usersAndMessages[0].user.should.have.property("lastName");
         });
+        it('it should ignore any turns that were skipped', async () => {
+            let usersAndMessages = await turnUtils.getUsersAndMessagesFromGameId(testUtils.variables.completedGameId);
 
+            // Live game includes one skipped turn
+            usersAndMessages.length.should.equal(testUtils.variables.liveGameTurns.length - 1);
+            
+        });
         it('it should return the turns in the correct order', async () => {
             let usersAndMessages = await turnUtils.getUsersAndMessagesFromGameId(testUtils.variables.completedGameId);
 
             usersAndMessages[0].message.should.equal(testUtils.variables.firstMessage);
+            usersAndMessages[1].message.should.equal(testUtils.variables.secondMessage);
+            usersAndMessages[2].message.should.equal(testUtils.variables.thirdMessage);
         });
 
     })

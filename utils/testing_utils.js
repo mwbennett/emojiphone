@@ -54,13 +54,24 @@ const turns = [
         userId: variables.userIdThree,
         isCurrent: false,
         gameId: variables.gameId
-    },
+    }
+];
+
+const liveGameTurns = [
+
     {
         userId: variables.userIdThree,
         messageType: MessageType.text,
         isCurrent: false,
         message: variables.thirdMessage,
         receivedAt: new Date("4/13/2020"),
+        nextUserId: variables.userIdFour,
+        gameId: variables.completedGameId
+    },
+    {
+        userId: variables.userIdFour,
+        messageType: MessageType.text,
+        isCurrent: false,
         gameId: variables.completedGameId
     },
     {
@@ -80,8 +91,10 @@ const turns = [
         message: variables.secondMessage,
         receivedAt: new Date("4/11/2020"),
         gameId: variables.completedGameId
-    },
-];
+    }
+]
+
+variables["liveGameTurns"] = liveGameTurns;
 
 module.exports = {
     variables: variables,
@@ -97,6 +110,6 @@ module.exports = {
     seedDatabase: async () => {
         await module.exports.truncateDatabase();
         await models.user.bulkCreate(users);
-        await models.turn.bulkCreate(turns);
+        await models.turn.bulkCreate(turns.concat(liveGameTurns));
     }
 }

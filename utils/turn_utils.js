@@ -1,4 +1,5 @@
 const MessageType = require('../types/message_type');
+const { Op } = require('sequelize');
 const models = require('../models');
 const emojiRegex = require('emoji-regex');
 const emojiReg = emojiRegex();
@@ -30,7 +31,8 @@ module.exports = {
             {
                 attributes: ['message'],
                 where: {
-                    gameId: gameId
+                    gameId: gameId,
+                    message: {[Op.not]: null}
                 }, 
                 include: [
                     {
