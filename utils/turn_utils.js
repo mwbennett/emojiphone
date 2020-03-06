@@ -24,5 +24,24 @@ module.exports = {
     },
     getCurrentTurn: async (gameId) => {
         return await models.turn.findOne({where: {gameId: gameId, isCurrent: true}, include: [{model: models.user, as: "user"}]})
+    },
+    getUsersAndMessagesFromGameId: async (gameId) => {
+        return await models.turn.findAll(
+            {
+                attributes: ['message'],
+                where: {
+                    gameId: gameId
+                }, 
+                include: [
+                    {
+                        model: models.user, as: "user",
+                        attributes: ['firstName', 'lastName']
+                    }
+                ],
+                order: [
+                    ['receivedAt', 'ASC']
+                ]
+            }
+        )
     }
 }
