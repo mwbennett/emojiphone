@@ -1,6 +1,7 @@
-var assert = require('assert');
-var should = require('chai').should();
-var utils = require('../../utils/utils');
+const assert = require('assert');
+const should = require('chai').should();
+const utils = require('../../utils/utils');
+const testUtils = require('../../utils/testing_utils');
 
 
 let sampleMessage = {
@@ -18,7 +19,7 @@ let sampleMessage = {
 
 const FIRST_NAME = "Aaatest";
 const LAST_NAME = "Tes";
-const PHONE_NUMBER = "919-868-4114";
+const PHONE_NUMBER = "+19198684114";
 
 
 describe('utils', () => {
@@ -31,6 +32,69 @@ describe('utils', () => {
             user.should.have.property('phoneNumber');
             user.firstName.should.equal(FIRST_NAME);
             user.lastName.should.equal(LAST_NAME);
+            user.phoneNumber.should.equal(PHONE_NUMBER);
+        });
+    });
+
+    describe('getUserByPhoneNumber', () => {
+        beforeEach(done => {
+            testUtils.seedDatabase().then(() => {
+                done()
+            });
+        })
+
+        it('it should be able to get a user by their phone number', async () => {
+            let user = await utils.getUserByPhoneNumber(testUtils.variables.phoneNumbers[0]);
+            console.log(user);
+
+            user.should.have.property("id");
+            user.id.should.equal(testUtils.variables.userIdOne);
+        });
+
+        it('it should return empty if no user exists with that phone number', async () => {
+            let user = await utils.getUserByPhoneNumber("invalid phone number");
+
+            should.not.exist(user);
+        });
+
+        it('it should fail when a string is not input', async () => {
+            let error;
+            try {
+                await utils.getUserByPhoneNumber([{"obj": "invalid phone number"}]);
+            } catch (e) {
+                error = e;
+            }
+            should.exist(error);
+            error.should.be.an("Error");
+        });
+    });
+    describe('addUser', () => {
+        beforeEach(done => {
+            testUtils.truncateDatabase().then(() => {
+                done();
+            });
+        })
+        it('it should be able to add a user', async () => {
+            let user = await utils.addUser(FIRST_NAME + " " + LAST_NAME, PHONE_NUMBER);
+            user.should.have.property("firstName");
+            user.firstName.should.equal(FIRST_NAME);
+            user.lastName.should.equal(LAST_NAME);
+            user.phoneNumber.should.equal(PHONE_NUMBER);
+        });
+
+        it('it should handle a name string with just a first name', async () => {
+            let user = await utils.addUser(FIRST_NAME, PHONE_NUMBER);
+            user.firstName.should.equal(FIRST_NAME);
+            should.not.exist(user.lastName);
+            user.phoneNumber.should.equal(PHONE_NUMBER);
+        });
+
+        it('it should handle a weird last name with spaces', async () => {
+            let weirdLastName = LAST_NAME + " Stephens the third";
+            let user = await utils.addUser(FIRST_NAME + " " + weirdLastName, PHONE_NUMBER);
+            user.should.have.property("firstName");
+            user.firstName.should.equal(FIRST_NAME);
+            user.lastName.should.equal(weirdLastName);
             user.phoneNumber.should.equal(PHONE_NUMBER);
         });
     })

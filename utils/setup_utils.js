@@ -7,24 +7,25 @@ module.exports = {
     MINIMUM_PLAYER_COUNT: 3,
     /**
     * Setup the game by instantiating users and turns
-    * @param  {Object[]} users  List of "User" objects to include in the game.
+    * @param  {Object[]} newUsers  List of "User" objects to create in the database and then include in the game.
+    * @param  {Object[]} existingUsers  List of users (each contained within it's own list of one item) already existing in the database to include in the game.
     */
-    setupGame: (users) => {
+    setupGame: (newUsers, existingUsers) => {
         let promises = [];
-        for(let user of users) {
+        for(let user of newUsers) {
             promises.push(models.user.upsert(user, {returning: true}).catch(err => {
                 console.log(err);
                 throw err;
             }));
         }
-        return Promise.all(promises).then((users) => {
-            return module.exports.makeTurns(users);
+        return Promise.all(promises).then((dbUsers) => {
+            return module.exports.makeTurns(dbUsers.concat(existingUsers));
         });
     },
 
     /**
     * Create game turns given the players involved. Order should be random!
-    * @param  {Object[]} dbUsers  List of users from the database in the Sequelize format
+    * @param  {Object[]} dbUsers  List of users (each contained within it's own list of one item) from the database in the Sequelize format
     */
     makeTurns: (dbUsers) => {
         dbUsers = _.shuffle(dbUsers);
