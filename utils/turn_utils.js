@@ -1,6 +1,7 @@
 const MessageType = require('../types/message_type');
 const { Op } = require('sequelize');
 const models = require('../models');
+const utils = require('../utils/utils');
 const emojiRegex = require('emoji-regex');
 const emojiReg = emojiRegex();
 const textReg = /[a-zA-Z0-9\.\!\+\$\#\@\_\&\-\+\(\)\/\*\"\'\:\;\!\?\~\`\|\•\√\π\÷\×\¶\∆\£\¢\€\¥\^\°\=\{\}\\\]\[\✓\%\<\>\%\/\*\-\+\ç\ß\à\á\â\ä\æ\ã\å\ā\è\é\ē\ê\ë\û\ú\ù\ü\ū\î\ì\ï\í\ī\ó\ø\œ\ō\ô\ö\õ\ò\ñ]+/
@@ -26,6 +27,41 @@ module.exports = {
     getCurrentTurn: async (gameId) => {
         return await models.turn.findOne({where: {gameId: gameId, isCurrent: true}, include: [{model: models.user, as: "user"}]})
     },
+    sendEndGameMessage: async (gameId) => {
+        let messageAndPhoneNumbers = await module.exports.getEndGameMessageWithPhoneNumbers(gameId);
+        console.log(messageAndPhoneNumbers);
+
+        for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
+            console.log(phoneNumber);
+            utils.bot.say({text: messageAndPhoneNumbers.message, channel: phoneNumber}, (err, response) => {
+                if (err) {
+                    console.log(err);
+                }
+            });
+        }
+    },
+    getEndGameMessageWithPhoneNumbers: async (gameId) => {
+        let usersAndMessages = await module.exports.getUsersAndMessagesFromGameId(gameId);
+
+        let message = `Your game of Emojiphone has completed! Here's the full transcript:
+        `
+        let phoneNumbers = [];
+
+        for (let userMessage of usersAndMessages) {
+            let user = userMessage.user;
+            phoneNumbers.push(user.phoneNumber);
+            let name = user.firstName;
+            name += (user.lastName) ? " " + user.lastName : "";
+            message += `
+${name}: ${userMessage.message}`
+        }
+
+        return {
+            phoneNumbers: phoneNumbers,
+            message: message
+        };
+
+    },
     getUsersAndMessagesFromGameId: async (gameId) => {
         return await models.turn.findAll(
             {
@@ -45,27 +81,5 @@ module.exports = {
                 ]
             }
         )
-    },
-    getEndGameMessage: async (gameId) => {
-        let usersAndMessages = await module.exports.getUsersAndMessagesFromGameId(gameId);
-
-        let message = `Round completed! Here's the full transcript:
-        `
-        let phoneNumber = [];
-
-        for (let userMessage of usersAndMessages) {
-            let user = userMessage.user;
-            phoneNumber.push(user.phoneNumber);
-            let name = user.firstName;
-            name += (user.lastName) ? " " + user.lastName : "";
-            message += `
-${name}: ${userMessage.message}`
-        }
-
-        return {
-            phoneNumbers: phoneNumbers,
-            message: message
-        };
-
     }
 }
