@@ -86,7 +86,7 @@ describe('Turn conversation utils', () => {
             });
         })
 
-        it.only("it should return a list of users' names and their messages based on a gameId", async () => {
+        it("it should return a list of users' names and their messages based on a gameId", async () => {
             let usersAndMessages = await turnUtils.getUsersAndMessagesFromGameId(testUtils.variables.completedGameId);
 
             usersAndMessages.should.be.a("array");
