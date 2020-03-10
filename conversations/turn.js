@@ -68,7 +68,7 @@ module.exports = {
                             if (currentTurn.nextUserId != null) {
                                 module.exports.beginNextTurn(currentTurn, currentMessageType);
                             } else {
-                                console.log("No next user, game over!!");
+                                turnUtils.sendEndGameMessage(turn.gameId);
                             }
                         } catch(err){
                             console.log(err);

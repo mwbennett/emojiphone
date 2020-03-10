@@ -92,8 +92,11 @@ describe('Turn conversation utils', () => {
             usersAndMessages.should.be.a("array");
             usersAndMessages[0].should.have.property("message");
             usersAndMessages[0].should.have.property("user");
-            usersAndMessages[0].user.should.have.property("firstName");
-            usersAndMessages[0].user.should.have.property("lastName");
+
+            // should.have.property doesn't work with sequelize, looks like it includes all fields as properties, but they're undefined?
+            should.not.equal(usersAndMessages[0].user.firstName, undefined);
+            should.not.equal(usersAndMessages[0].user.lastName, undefined);
+            should.not.equal(usersAndMessages[0].user.phoneNumber, undefined);
         });
         it('it should ignore any turns that were skipped', async () => {
             let usersAndMessages = await turnUtils.getUsersAndMessagesFromGameId(testUtils.variables.completedGameId);
