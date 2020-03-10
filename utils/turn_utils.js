@@ -37,7 +37,7 @@ module.exports = {
                 include: [
                     {
                         model: models.user, as: "user",
-                        attributes: ['firstName', 'lastName']
+                        attributes: ['firstName', 'lastName', 'phoneNumber']
                     }
                 ],
                 order: [
@@ -51,16 +51,21 @@ module.exports = {
 
         let message = `Round completed! Here's the full transcript:
         `
+        let phoneNumber = [];
 
         for (let userMessage of usersAndMessages) {
             let user = userMessage.user;
+            phoneNumber.push(user.phoneNumber);
             let name = user.firstName;
             name += (user.lastName) ? " " + user.lastName : "";
             message += `
 ${name}: ${userMessage.message}`
         }
 
-        return message;
+        return {
+            phoneNumbers: phoneNumbers,
+            message: message
+        };
 
     }
 }
