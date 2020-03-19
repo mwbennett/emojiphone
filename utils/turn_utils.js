@@ -45,6 +45,7 @@ module.exports = {
 
         let message = `Your game of Emojiphone has completed! Here's the full transcript:
         `
+
         let phoneNumbers = [];
 
         for (let userMessage of usersAndMessages) {
@@ -55,6 +56,18 @@ module.exports = {
             message += `
 ${name}: ${userMessage.message}`
         }
+
+        let groupMessage = message + `
+
+This is a group text with all members of the game where you can discuss your results!`;
+
+        let mmsUrls = mmsUtils.makeMmsUrls(message, phoneNumbers);
+
+        message += `
+
+If you'd like to start a group message to discuss your game, just click one of the following links!
+Android: ${mmsUrls.android}
+iOS: ${mmsUrls.ios}`
 
         return {
             phoneNumbers: phoneNumbers,
