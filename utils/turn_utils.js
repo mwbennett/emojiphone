@@ -5,6 +5,7 @@ const utils = require('../utils/utils');
 const emojiRegex = require('emoji-regex');
 const emojiReg = emojiRegex();
 const textReg = /[a-zA-Z0-9\.\!\+\$\#\@\_\&\-\+\(\)\/\*\"\'\:\;\!\?\~\`\|\•\√\π\÷\×\¶\∆\£\¢\€\¥\^\°\=\{\}\\\]\[\✓\%\<\>\%\/\*\-\+\ç\ß\à\á\â\ä\æ\ã\å\ā\è\é\ē\ê\ë\û\ú\ù\ü\ū\î\ì\ï\í\ī\ó\ø\œ\ō\ô\ö\õ\ò\ñ]+/
+require('dotenv').config();
 
 module.exports = {
     isValidResponse: (response, messageType) => {
@@ -40,11 +41,18 @@ module.exports = {
             });
         }
     },
-    getEndGameMessageWithPhoneNumbers: async (gameId) => {
+    getEndGameMessageWithPhoneNumbers: async (gameId, isGroupMessage) => {
         let usersAndMessages = await module.exports.getUsersAndMessagesFromGameId(gameId);
 
-        let message = `Your game of Emojiphone has completed! Here's the full transcript:
-        `
+        let message = "";
+
+        if (isGroupMessage) {
+            message = `Great game of Emojiphone everyone! I've started a group text where we can discuss everything that went down. Here was our game:
+`
+        } else {
+            message = `Your game of Emojiphone has completed! Here's the full transcript:
+`
+        }
 
         let phoneNumbers = [];
 
@@ -57,17 +65,14 @@ module.exports = {
 ${name}: ${userMessage.message}`
         }
 
-        let groupMessage = message + `
-
-This is a group text with all members of the game where you can discuss your results!`;
-
-        let mmsUrls = mmsUtils.makeMmsUrls(message, phoneNumbers);
-
-        message += `
+        if (!isGroupMessage) {
+            message += `
 
 If you'd like to start a group message to discuss your game, just click one of the following links!
-Android: ${mmsUrls.android}
-iOS: ${mmsUrls.ios}`
+
+Android: ${process.env.SERVER_URL}/mmsLink/android/${gameId}
+iOS: ${process.env.SERVER_URL}/mmsLink/ios/${gameId}`
+        }
 
         return {
             phoneNumbers: phoneNumbers,
