@@ -2,7 +2,9 @@ const turnUtils = require("./turn_utils");
 
 module.exports = {
     makeMmsUrl: async (gameId, platform) => {
-        let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId, true);
+        let isGroupMessage = true;
+
+        let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId, isGroupMessage);
         let phoneString = messageAndPhoneNumbers.phoneNumbers.join(',');
 
         let url = "sms://"
