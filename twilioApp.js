@@ -4,6 +4,9 @@ const utils = require('./utils/utils');
 const models = require('./models');
 const User = require('./models/user');
 const mmsUtils = require('./utils/mms_utils');
+const ios = 'ios';
+const android = 'android';
+const acceptablePlatforms = [android, ios];
 
 module.exports = {
     setup: function() {
@@ -13,7 +16,11 @@ module.exports = {
                 res.send(':)');
             });
             server.get('/mmsLink/:platform/:gameId', async function(req, res) {
-                let url = await mmsUtils.makeMmsUrl(req.params.gameId, req.params.platform);
+                let platform = req.params.platform.toLowerCase();
+                if (acceptablePlatforms.indexOf(platform) == -1) {
+                    return res.status(400).send("Platform must be 'ios' or 'android'");
+                }
+                let url = await mmsUtils.makeMmsUrl(req.params.gameId, platform);
                 res.set('location', url);
                 res.status(301).send()
             })

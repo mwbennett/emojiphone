@@ -1,11 +1,13 @@
-const MessageType = require('../types/message_type');
+require('dotenv').config();
 const { Op } = require('sequelize');
-const models = require('../models');
-const utils = require('../utils/utils');
 const emojiRegex = require('emoji-regex');
 const emojiReg = emojiRegex();
+
+const MessageType = require('../types/message_type');
+const models = require('../models');
+const utils = require('../utils/utils');
+
 const textReg = /[a-zA-Z0-9\.\!\+\$\#\@\_\&\-\+\(\)\/\*\"\'\:\;\!\?\~\`\|\•\√\π\÷\×\¶\∆\£\¢\€\¥\^\°\=\{\}\\\]\[\✓\%\<\>\%\/\*\-\+\ç\ß\à\á\â\ä\æ\ã\å\ā\è\é\ē\ê\ë\û\ú\ù\ü\ū\î\ì\ï\í\ī\ó\ø\œ\ō\ô\ö\õ\ò\ñ]+/
-require('dotenv').config();
 
 module.exports = {
     isValidResponse: (response, messageType) => {
@@ -61,6 +63,7 @@ module.exports = {
             phoneNumbers.push(user.phoneNumber);
             let name = user.firstName;
             name += (user.lastName) ? " " + user.lastName : "";
+            
             message += `
 ${name}: ${userMessage.message}`
         }
