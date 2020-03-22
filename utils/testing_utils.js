@@ -93,6 +93,11 @@ const liveGameTurns = [
     }
 ]
 
+const games = [
+    {id: variables.gameId},
+    {id: variables.completedGameId}
+]
+
 variables["liveGameTurns"] = liveGameTurns;
 
 module.exports = {
@@ -109,6 +114,7 @@ module.exports = {
     seedDatabase: async () => {
         await module.exports.truncateDatabase();
         await models.user.bulkCreate(users);
+        await models.game.bulkCreate(games);
         await models.turn.bulkCreate(turns.concat(liveGameTurns));
     }
 }
