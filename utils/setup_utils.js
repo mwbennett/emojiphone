@@ -1,4 +1,5 @@
 const _ = require("underscore");
+const { Op } = require('sequelize');
 
 const MessageType = require('../types/message_type');
 const models = require('../models');
@@ -75,7 +76,35 @@ module.exports = {
         }
         return models.turn.create(turn);
     },
-
+    /**
+    * Restart a completed game using its id
+    * @param  {integer} gameId gameId of game to be restarted
+    */
+    restartGameById: async (gameId) => {
+        let users = await module.exports.getActiveUsersByGameId(gameId);
+        users = users.map(turn => [turn.user]);
+        return module.exports.setupGame([], users);
+    },
+    /**
+    * Get users that participated (message not null) in a completed game
+    * @param  {integer} gameId gameId of game to be restarted
+    */
+    getActiveUsersByGameId: async (gameId) => {
+        return await models.turn.findAll(
+            {
+                attributes: [],
+                where: {
+                    gameId: gameId,
+                    message: {[Op.not]: null}
+                }, 
+                include: [
+                    {
+                        model: models.user, as: "user"
+                    }
+                ]
+            }
+        )
+    },
     /**
      * Validate that we are ready to start the game!
      * @param  {Object[]} users  List of "User" objects to include in the game.
