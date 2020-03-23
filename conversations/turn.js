@@ -92,32 +92,18 @@ module.exports = {
     },
     createEndGameConversations: async (gameId) => {
         let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId);
-
         for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
             module.exports.createEndGameConversation(messageAndPhoneNumbers.message, phoneNumber, gameId);
         }
     },
     createEndGameConversation: async (message, phoneNumber, gameId) => {
         utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
-
-            convo.addMessage({
-                text: `Great, we've restarted your game! Enjoy.`,
-            }, GAME_RESTARTED_THREAD);
-
-            convo.addMessage({
-                text: `Sorry, I couldn't understand you. Please type "${turnUtils.RESTART_KEYWORD}" if you'd like to restart the game.`,
-            }, INVALID_INPUT_THREAD);
-
-            convo.addMessage({
-                text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`,
-            }, ALREADY_RESTARTED_THREAD);
-
             convo.addQuestion(message, 
                 [
                 {
                     pattern: turnUtils.RESTART_KEYWORD,
                     callback: async (response, convo) => {
-                        let game = await models.game.findOne({where: {id: gameId}, returning: ["restarted"]})
+                        let game = await models.game.findOne({where: {id: gameId}, attributes: ["restarted"]})
                         if (!game.restarted) {
                             await module.exports.restartGame(gameId);
                             convo.gotoThread(GAME_RESTARTED_THREAD);
@@ -133,9 +119,12 @@ module.exports = {
                     }
                 }], {}
             );
-
+            convo.addMessage({text: `Great, we've restarted your game! Enjoy.`}, GAME_RESTARTED_THREAD);
+            convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
+            convo.addMessage({
+                text: `Sorry, I couldn't understand you. Please type "${turnUtils.RESTART_KEYWORD}" if you'd like to restart the game.`
+            }, INVALID_INPUT_THREAD);
             convo.setTimeout(SIX_HOURS_IN_MS);
-
             convo.activate();
         })
     },

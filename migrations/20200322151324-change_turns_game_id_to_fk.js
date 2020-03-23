@@ -16,13 +16,6 @@ module.exports = {
         onUpdate: 'cascade'
       }
     )
-    /*
-      Add altering commands here.
-      Return a promise to correctly handle asynchronicity.
-
-      Example:
-      return queryInterface.createTable('users', { id: Sequelize.INTEGER });
-    */
   },
 
   down: (queryInterface, Sequelize) => {
@@ -30,12 +23,5 @@ module.exports = {
       'turns',
       ['gameId']
     )
-    /*
-      Add reverting commands here.
-      Return a promise to correctly handle asynchronicity.
-
-      Example:
-      return queryInterface.dropTable('users');
-    */
   }
 };

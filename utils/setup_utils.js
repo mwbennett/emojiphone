@@ -41,9 +41,8 @@ module.exports = {
         try {
             newGame = await models.game.create();
         } catch(e) {
-            console.log(e);
             return new Promise((resolve, reject) => {
-                reject("Could not create new game");
+                reject("Could not create new game:", e);
             })
         };
         let turnPromises = [];
@@ -81,8 +80,8 @@ module.exports = {
     * @param  {integer} gameId gameId of game to be restarted
     */
     setupPreviouslyPlayedGame: async (gameId) => {
-        let users = await module.exports.getActiveUsersByGameId(gameId);
-        users = users.map(turn => [turn.user]);
+        let previousTurns = await module.exports.getActiveUsersByGameId(gameId);
+        let users = previousTurns.map(turn => [turn.user]);
         return module.exports.setupGame([], users);
     },
     /**
