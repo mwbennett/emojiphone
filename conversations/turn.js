@@ -10,6 +10,7 @@ const TURN_THREAD = "turn";
 const TURN_ERROR_THREAD = "error";
 const GAME_RESTARTED_THREAD = "restarted";
 const INVALID_INPUT_THREAD = "invalid";
+const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
 
 const INITIAL_TURN_PROMPT = "Welcome to Emojiphone! You're the first player, so all you need to do is respond with a phrase or sentence that is easy to describe with emojis!";
 
@@ -107,13 +108,22 @@ module.exports = {
                 text: `Sorry, I couldn't understand you. Please type "${turnUtils.RESTART_KEYWORD}" if you'd like to restart the game.`,
             }, INVALID_INPUT_THREAD);
 
+            convo.addMessage({
+                text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`,
+            }, ALREADY_RESTARTED_THREAD);
+
             convo.addQuestion(message, 
                 [
                 {
                     pattern: turnUtils.RESTART_KEYWORD,
                     callback: async (response, convo) => {
-                        convo.gotoThread(GAME_RESTARTED_THREAD);
-                        module.exports.restartGame(gameId);
+                        let game = await models.game.findOne({where: {id: gameId}, returning: ["restarted"]})
+                        if (!game.restarted) {
+                            await module.exports.restartGame(gameId);
+                            convo.gotoThread(GAME_RESTARTED_THREAD);
+                        } else {
+                            convo.gotoThread(ALREADY_RESTARTED_THREAD);
+                        }
                     }
                 },
                 {
@@ -130,6 +140,7 @@ module.exports = {
         })
     },
     restartGame: async (gameId) => {
+        await models.game.update({restarted: true}, {where: {id: gameId}});
         let newGameTurns = await setupUtils.setupPreviouslyPlayedGame(gameId);
         if (Array.isArray(newGameTurns) && newGameTurns.length > 0) {
             module.exports.takeFirstTurn(newGameTurns[0].gameId);
