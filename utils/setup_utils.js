@@ -80,7 +80,7 @@ module.exports = {
     * Restart a completed game using its id
     * @param  {integer} gameId gameId of game to be restarted
     */
-    restartGameById: async (gameId) => {
+    setupPreviouslyPlayedGame: async (gameId) => {
         let users = await module.exports.getActiveUsersByGameId(gameId);
         users = users.map(turn => [turn.user]);
         return module.exports.setupGame([], users);

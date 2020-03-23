@@ -1,5 +1,6 @@
 const utils = require('../utils/utils');
 const turnUtils = require('../utils/turn_utils');
+const setupUtils = require('../utils/setup_utils');
 const models = require('../models');
 const MessageType = require('../types/message_type');
 
@@ -7,10 +8,15 @@ const TURN_SUCCESS_THREAD = "success";
 const TURN_FAIL_THREAD = "fail";
 const TURN_THREAD = "turn";
 const TURN_ERROR_THREAD = "error";
+const GAME_RESTARTED_THREAD = "restarted";
+const INVALID_INPUT_THREAD = "invalid";
+
 const INITIAL_TURN_PROMPT = "Welcome to Emojiphone! You're the first player, so all you need to do is respond with a phrase or sentence that is easy to describe with emojis!";
 
-module.exports = {
+const SIX_HOURS_IN_MS = 6*60*60*1000;
 
+
+module.exports = {
     /**
      * Create the converstaion thread where a user can take their turn
      * @param  {object} currentTurn  Database Turn that is about to be taken.
@@ -68,7 +74,7 @@ module.exports = {
                             if (currentTurn.nextUserId != null) {
                                 module.exports.beginNextTurn(currentTurn, currentMessageType);
                             } else {
-                                turnUtils.sendEndGameMessage(turn.gameId);
+                                module.exports.createEndGameConversations(turn.gameId);
                             }
                         } catch(err){
                             console.log(err);
@@ -82,6 +88,54 @@ module.exports = {
             }], {}, TURN_THREAD
         );
         
+    },
+    createEndGameConversations: async (gameId) => {
+        let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId);
+
+        for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
+            module.exports.createEndGameConversation(messageAndPhoneNumbers.message, phoneNumber, gameId);
+        }
+    },
+    createEndGameConversation: async (message, phoneNumber, gameId) => {
+        utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
+
+            convo.addMessage({
+                text: `Great, we've restarted your game! Enjoy.`,
+            }, GAME_RESTARTED_THREAD);
+
+            convo.addMessage({
+                text: `Sorry, I couldn't understand you. Please type "${turnUtils.RESTART_KEYWORD}" if you'd like to restart the game.`,
+            }, INVALID_INPUT_THREAD);
+
+            convo.addQuestion(message, 
+                [
+                {
+                    pattern: turnUtils.RESTART_KEYWORD,
+                    callback: async (response, convo) => {
+                        convo.gotoThread(GAME_RESTARTED_THREAD);
+                        module.exports.restartGame(gameId);
+                    }
+                },
+                {
+                    default: true,
+                    callback: async (response, convo) => {
+                        convo.gotoThread(INVALID_INPUT_THREAD);
+                    }
+                }], {}
+            );
+
+            convo.setTimeout(SIX_HOURS_IN_MS);
+
+            convo.activate();
+        })
+    },
+    restartGame: async (gameId) => {
+        let newGameTurns = await setupUtils.setupPreviouslyPlayedGame(gameId);
+        if (Array.isArray(newGameTurns) && newGameTurns.length > 0) {
+            module.exports.takeFirstTurn(newGameTurns[0].gameId);
+        } else {
+            console.log("New game not successfully created");
+        }
     },
 
     /**
