@@ -4,7 +4,7 @@ const setupUtils = require('../utils/setup_utils');
 const models = require('../models');
 const MessageType = require('../types/message_type');
 
-const RESTART_KEYWORD: "restart";
+const RESTART_KEYWORD = "again";
 
 const TURN_SUCCESS_THREAD = "success";
 const TURN_FAIL_THREAD = "fail";
