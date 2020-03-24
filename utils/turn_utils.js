@@ -10,7 +10,6 @@ const utils = require('../utils/utils');
 const textReg = /[a-zA-Z0-9\.\!\+\$\#\@\_\&\-\+\(\)\/\*\"\'\:\;\!\?\~\`\|\•\√\π\÷\×\¶\∆\£\¢\€\¥\^\°\=\{\}\\\]\[\✓\%\<\>\%\/\*\-\+\ç\ß\à\á\â\ä\æ\ã\å\ā\è\é\ē\ê\ë\û\ú\ù\ü\ū\î\ì\ï\í\ī\ó\ø\œ\ō\ô\ö\õ\ò\ñ]+/
 
 module.exports = {
-    RESTART_KEYWORD: "restart",
     isValidResponse: (response, messageType) => {
         response = response.replace(/\s+/g, '');
         if (messageType == MessageType.text) {

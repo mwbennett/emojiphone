@@ -4,11 +4,13 @@ const setupUtils = require('../utils/setup_utils');
 const models = require('../models');
 const MessageType = require('../types/message_type');
 
+const RESTART_KEYWORD: "restart";
+
 const TURN_SUCCESS_THREAD = "success";
 const TURN_FAIL_THREAD = "fail";
 const TURN_THREAD = "turn";
 const TURN_ERROR_THREAD = "error";
-const GAME_RESTARTED_THREAD = "again";
+const GAME_RESTARTED_THREAD = "restart";
 const INVALID_INPUT_THREAD = "invalid";
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
 const END_GAME_THREAD = "endGame";
@@ -104,10 +106,10 @@ module.exports = {
                 text: message,
                 action: END_GAME_THREAD
             })
-            convo.addQuestion(`To restart your game, simply respond with "${turnUtils.RESTART_KEYWORD}" in the next six hours.`, 
+            convo.addQuestion(`To restart your game, simply respond with "${RESTART_KEYWORD}" in the next six hours.`, 
                 [
                 {
-                    pattern: turnUtils.RESTART_KEYWORD,
+                    pattern: RESTART_KEYWORD,
                     callback: async (response, convo) => {
                         let game = await models.game.findOne({where: {id: gameId}, attributes: ["restarted"]})
                         if (!game.restarted) {
