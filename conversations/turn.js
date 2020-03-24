@@ -8,7 +8,7 @@ const TURN_SUCCESS_THREAD = "success";
 const TURN_FAIL_THREAD = "fail";
 const TURN_THREAD = "turn";
 const TURN_ERROR_THREAD = "error";
-const GAME_RESTARTED_THREAD = "restarted";
+const GAME_RESTARTED_THREAD = "again";
 const INVALID_INPUT_THREAD = "invalid";
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
 const END_GAME_THREAD = "endGame";
@@ -104,15 +104,15 @@ module.exports = {
                 text: message,
                 action: END_GAME_THREAD
             })
-            convo.addQuestion(`To restart your game, simply respond with "${turnUtils.RESTART_KEYWORD}"" in the next six hours.`, 
+            convo.addQuestion(`To restart your game, simply respond with "${turnUtils.RESTART_KEYWORD}" in the next six hours.`, 
                 [
                 {
                     pattern: turnUtils.RESTART_KEYWORD,
                     callback: async (response, convo) => {
                         let game = await models.game.findOne({where: {id: gameId}, attributes: ["restarted"]})
                         if (!game.restarted) {
-                            let otherUsersPhoneNumbers = phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), phoneNumbers.indexOf(phoneNumber));
-                            await module.exports.restartGame(gameId, otherUsersPhoneNumbers);
+                            phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), phoneNumbers.indexOf(phoneNumber));
+                            await module.exports.restartGame(gameId, phoneNumbers);
                             convo.gotoThread(GAME_RESTARTED_THREAD);
                         } else {
                             convo.gotoThread(ALREADY_RESTARTED_THREAD);
