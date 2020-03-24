@@ -11,6 +11,8 @@ const TURN_ERROR_THREAD = "error";
 const GAME_RESTARTED_THREAD = "restarted";
 const INVALID_INPUT_THREAD = "invalid";
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
+const END_GAME_THREAD = "endGame";
+const ANOTHER_USER_RESTARTED_THREAD = "anotherRestarted";
 
 const INITIAL_TURN_PROMPT = "Welcome to Emojiphone! You're the first player, so all you need to do is respond with a phrase or sentence that is easy to describe with emojis!";
 
@@ -93,19 +95,24 @@ module.exports = {
     createEndGameConversations: async (gameId) => {
         let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId);
         for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
-            module.exports.createEndGameConversation(messageAndPhoneNumbers.message, phoneNumber, gameId);
+            module.exports.createEndGameConversation(messageAndPhoneNumbers.message, phoneNumber, messageAndPhoneNumbers.phoneNumbers, gameId);
         }
     },
-    createEndGameConversation: async (message, phoneNumber, gameId) => {
+    createEndGameConversation: async (message, phoneNumber, phoneNumbers,  gameId) => {
         utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
-            convo.addQuestion(message, 
+            convo.addMessage({
+                text: message,
+                action: END_GAME_THREAD
+            })
+            convo.addQuestion(`To restart your game, simply respond with "${turnUtils.RESTART_KEYWORD}"" in the next six hours.`, 
                 [
                 {
                     pattern: turnUtils.RESTART_KEYWORD,
                     callback: async (response, convo) => {
                         let game = await models.game.findOne({where: {id: gameId}, attributes: ["restarted"]})
                         if (!game.restarted) {
-                            await module.exports.restartGame(gameId);
+                            let otherUsersPhoneNumbers = phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), phoneNumbers.indexOf(phoneNumber));
+                            await module.exports.restartGame(gameId, otherUsersPhoneNumbers);
                             convo.gotoThread(GAME_RESTARTED_THREAD);
                         } else {
                             convo.gotoThread(ALREADY_RESTARTED_THREAD);
@@ -117,24 +124,33 @@ module.exports = {
                     callback: async (response, convo) => {
                         convo.gotoThread(INVALID_INPUT_THREAD);
                     }
-                }], {}
+                }], {}, END_GAME_THREAD
             );
             convo.addMessage({text: `Great, we've restarted your game! Enjoy.`}, GAME_RESTARTED_THREAD);
+            convo.addMessage({text: `Another user just restarted your game!`}, ANOTHER_USER_RESTARTED_THREAD);
             convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
             convo.addMessage({
-                text: `Sorry, I couldn't understand you. Please type "${turnUtils.RESTART_KEYWORD}" if you'd like to restart the game.`
+                text: `Sorry, I couldn't understand you.`,
+                action: END_GAME_THREAD
             }, INVALID_INPUT_THREAD);
             convo.setTimeout(SIX_HOURS_IN_MS);
             convo.activate();
         })
     },
-    restartGame: async (gameId) => {
+    restartGame: async (gameId, otherUsersPhoneNumbers) => {
+        module.exports.finishEndGameConversations(otherUsersPhoneNumbers);
         await models.game.update({restarted: true}, {where: {id: gameId}});
         let newGameTurns = await setupUtils.setupPreviouslyPlayedGame(gameId);
         if (Array.isArray(newGameTurns) && newGameTurns.length > 0) {
             module.exports.takeFirstTurn(newGameTurns[0].gameId);
         } else {
             console.log("New game not successfully created");
+        }
+    },
+    finishEndGameConversations: (phoneNumbers) => {
+        let tasks = utils.controller.tasks.filter(task => phoneNumbers.indexOf(task.convos[0].context.channel) != -1)
+        for(let task of tasks) {
+            task.convos[0].gotoThread(ANOTHER_USER_RESTARTED_THREAD);
         }
     },
 

@@ -72,8 +72,6 @@ ${name}: ${userMessage.message}`
         if (!isGroupMessage) {
             message += `
 
-To restart your game, simply respond with "${module.exports.RESTART_KEYWORD}"" in the next six hours.
-
 If you'd like to start a group message to discuss your game, just click one of the following links!
 
 Android: ${process.env.SERVER_URL}/mmsLink/android/${gameId}
