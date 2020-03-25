@@ -106,6 +106,7 @@ module.exports = {
                 text: message,
                 action: END_GAME_THREAD
             })
+            
             convo.addQuestion(`To restart your game, simply respond with "${RESTART_KEYWORD}" in the next six hours.`, 
                 [
                 {
@@ -128,8 +129,8 @@ module.exports = {
                     }
                 }], {}, END_GAME_THREAD
             );
-            convo.addMessage({text: `Great, we've restarted your game! Enjoy.`}, GAME_RESTARTED_THREAD);
-            convo.addMessage({text: `Another user just restarted your game!`}, ANOTHER_USER_RESTARTED_THREAD);
+            convo.addMessage({text: `Great, we've restarted your game! Just sit back and relax until it's your turn.`}, GAME_RESTARTED_THREAD);
+            convo.addMessage({text: `Another user just restarted your game! Just sit back and relax until it's your turn.`}, ANOTHER_USER_RESTARTED_THREAD);
             convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
             convo.addMessage({
                 text: `Sorry, I couldn't understand you.`,
