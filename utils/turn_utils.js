@@ -1,4 +1,6 @@
-require('dotenv').config();
+process.env.NODE_ENV = (process.env.NODE_ENV) ? process.env.NODE_ENV :  "development";
+require('custom-env').env(true);
+
 const { Op } = require('sequelize');
 const emojiRegex = require('emoji-regex');
 const emojiReg = emojiRegex();

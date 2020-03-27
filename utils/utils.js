@@ -1,6 +1,8 @@
+process.env.NODE_ENV = (process.env.NODE_ENV) ? process.env.NODE_ENV :  "development";
+require('custom-env').env(true);
+
 const vCard = require('vcard');
 var Botkit = require('botkit');
-require('dotenv').config();
 var fetch = require('node-fetch');
 const models = require('../models');
 
