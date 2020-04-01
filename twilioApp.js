@@ -12,7 +12,7 @@ const acceptablePlatforms = [android, ios];
 module.exports = {
     setup: function() {
         utils.createBot();
-        utils.controller.setupWebserver(80, function(err, server) {
+        utils.controller.setupWebserver(5000, function(err, server) {
             server.get('/', function(req, res) {
                 res.send(':)');
             });
