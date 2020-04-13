@@ -33,38 +33,35 @@ module.exports = {
 
         currentTurn.update({isCurrent: true});
         let phoneNumber = currentTurn.user.phoneNumber;
-        utils.bot.say({text: "Time to take your turn in your game of Emojiphone", channel: phoneNumber}, (err, response) => {
-            utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
+        utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
+            convo.addMessage({text: "Time to take your turn in your game of Emojiphone", action: TURN_THREAD});
 
-                convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
-                
-                convo.addMessage({
-                    text: `Sorry your response was not written in ONLY ${currentMessageType}. Please try again!`,
-                    action: TURN_THREAD
-                }, TURN_FAIL_THREAD);
+            convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
+            
+            convo.addMessage({
+                text: `Sorry your response was not written in ONLY ${currentMessageType}. Please try again!`,
+                action: TURN_THREAD
+            }, TURN_FAIL_THREAD);
 
-                convo.addMessage({
-                    text: "Sorry, we encountered an error processing your turn. Please try again or contact our support team at TODO.",
-                    action: TURN_THREAD
-                }, TURN_ERROR_THREAD)
-
-
-                module.exports.addTurnQuestion(convo, currentTurn, turnPrompt, currentMessageType);
+            convo.addMessage({
+                text: "Sorry, we encountered an error processing your turn. Please try again or contact our support team at TODO.",
+                action: TURN_THREAD
+            }, TURN_ERROR_THREAD)
 
 
-                convo.activate();
+            module.exports.addTurnQuestion(convo, currentTurn, turnPrompt, currentMessageType);
 
-                convo.gotoThread(TURN_THREAD);
 
-                convo.on('end', async (convo) => {
-                    if (currentTurn.nextUserId != null) {
-                        module.exports.beginNextTurn(currentTurn, currentMessageType);
-                    } else {
-                        module.exports.createEndGameConversations(currentTurn.gameId);
-                    }
-                })
+            convo.activate();
+
+            convo.on('end', async (convo) => {
+                if (currentTurn.nextUserId != null) {
+                    module.exports.beginNextTurn(currentTurn, currentMessageType);
+                } else {
+                    module.exports.createEndGameConversations(currentTurn.gameId);
+                }
             })
-        });
+        })
     },
 
 
