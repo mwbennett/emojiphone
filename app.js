@@ -1,12 +1,12 @@
+process.env.NODE_ENV = (process.env.NODE_ENV) ? process.env.NODE_ENV :  "development";
+require('custom-env').env(true);
+
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const twilioApp = require('./twilioApp');
-
-// Initialize dotenv files.
-require('dotenv').config()
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
