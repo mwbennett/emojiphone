@@ -15,6 +15,7 @@ const INVALID_INPUT_THREAD = "invalid";
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
 const END_GAME_THREAD = "endGame";
 const ANOTHER_USER_RESTARTED_THREAD = "anotherRestarted";
+const END_GAME_PROMPT = `To restart your game, simply respond with "${RESTART_KEYWORD}" in the next six hours.`;
 
 const INITIAL_TURN_PROMPT = "Welcome to Emojiphone! You're the first player, so all you need to do is respond with a phrase or sentence that is easy to describe with emojis!";
 
@@ -32,32 +33,36 @@ module.exports = {
 
         currentTurn.update({isCurrent: true});
         let phoneNumber = currentTurn.user.phoneNumber;
-        utils.bot.say({text: "Time to take your turn in your game of Emojiphone", channel: phoneNumber}, (err, response) => {
-            utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
+        utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
+            convo.addMessage({text: "Time to take your turn in your game of Emojiphone", action: TURN_THREAD});
 
-                convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
-                
-                convo.addMessage({
-                    text: `Sorry your response was not written in ONLY ${currentMessageType}. Please try again!`,
-                    action: TURN_THREAD
-                }, TURN_FAIL_THREAD);
+            convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
+            
+            convo.addMessage({
+                text: `Sorry your response was not written in ONLY ${currentMessageType}. Please try again!`,
+                action: TURN_THREAD
+            }, TURN_FAIL_THREAD);
 
-                convo.addMessage({
-                    text: "Sorry, we encountered an error processing your turn. Please try again or contact our support team at TODO.",
-                    action: TURN_THREAD
-                }, TURN_ERROR_THREAD)
-
-
-                module.exports.addTurnQuestion(convo, currentTurn, turnPrompt, currentMessageType);
+            convo.addMessage({
+                text: "Sorry, we encountered an error processing your turn. Please try again or contact our support team at TODO.",
+                action: TURN_THREAD
+            }, TURN_ERROR_THREAD)
 
 
-                convo.activate();
+            module.exports.addTurnQuestion(convo, currentTurn, turnPrompt, currentMessageType);
 
-                convo.gotoThread(TURN_THREAD);
+
+            convo.activate();
+
+            convo.on('end', async (convo) => {
+                if (currentTurn.nextUserId != null) {
+                    module.exports.beginNextTurn(currentTurn, currentMessageType);
+                } else {
+                    module.exports.createEndGameConversations(currentTurn.gameId);
+                }
             })
-        });
+        })
     },
-
 
 
     /**
@@ -74,13 +79,8 @@ module.exports = {
                 callback: async (response, convo) => {
                     if (turnUtils.isValidResponse(response.Body, currentMessageType)) {
                         try {
-                            let turn = await currentTurn.update({message: response.Body, messageType: currentMessageType, receivedAt: new Date(), isCurrent: false});
+                            await currentTurn.update({message: response.Body, messageType: currentMessageType, receivedAt: new Date(), isCurrent: false});
                             convo.gotoThread(TURN_SUCCESS_THREAD);
-                            if (currentTurn.nextUserId != null) {
-                                module.exports.beginNextTurn(currentTurn, currentMessageType);
-                            } else {
-                                module.exports.createEndGameConversations(turn.gameId);
-                            }
                         } catch(err){
                             console.log(err);
                             convo.gotoThread(TURN_ERROR_THREAD);
@@ -101,21 +101,20 @@ module.exports = {
         }
     },
     createEndGameConversation: async (message, phoneNumber, phoneNumbers,  gameId) => {
+        let game = await models.game.findByPk(gameId);
         utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
             convo.addMessage({
                 text: message,
                 action: END_GAME_THREAD
             })
             
-            convo.addQuestion(`To restart your game, simply respond with "${RESTART_KEYWORD}" in the next six hours.`, 
-                [
-                {
+            convo.addQuestion(END_GAME_PROMPT, 
+                [{
                     pattern: RESTART_KEYWORD,
                     callback: async (response, convo) => {
-                        let game = await models.game.findOne({where: {id: gameId}, attributes: ["restarted"]})
                         if (!game.restarted) {
-                            phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), phoneNumbers.indexOf(phoneNumber));
-                            await module.exports.restartGame(gameId, phoneNumbers);
+                            phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), 1);
+                            module.exports.finishEndGameConversations(phoneNumbers);
                             convo.gotoThread(GAME_RESTARTED_THREAD);
                         } else {
                             convo.gotoThread(ALREADY_RESTARTED_THREAD);
@@ -136,18 +135,26 @@ module.exports = {
                 text: `Sorry, I couldn't understand you.`,
                 action: END_GAME_THREAD
             }, INVALID_INPUT_THREAD);
+            convo.on('end', async(convo) => {
+                // Potentially use convo.vars if async double-game starting is still a problem
+                let responses = convo.extractResponses();
+                if (responses[END_GAME_PROMPT] && responses[END_GAME_PROMPT].toLowerCase() == RESTART_KEYWORD) {
+                    module.exports.restartGame(game);
+                }
+            })
             convo.setTimeout(SIX_HOURS_IN_MS);
             convo.activate();
         })
     },
-    restartGame: async (gameId, otherUsersPhoneNumbers) => {
-        module.exports.finishEndGameConversations(otherUsersPhoneNumbers);
-        await models.game.update({restarted: true}, {where: {id: gameId}});
-        let newGameTurns = await setupUtils.setupPreviouslyPlayedGame(gameId);
-        if (Array.isArray(newGameTurns) && newGameTurns.length > 0) {
-            module.exports.takeFirstTurn(newGameTurns[0].gameId);
-        } else {
-            console.log("New game not successfully created");
+    restartGame: async (game) => {
+        if (!game.restarted) {
+            game.update({restarted: true});
+            let newGameTurns = await setupUtils.setupPreviouslyPlayedGame(game.id);
+            if (Array.isArray(newGameTurns) && newGameTurns.length > 0) {
+                module.exports.takeFirstTurn(newGameTurns[0].gameId);
+            } else {
+                console.log("New game not successfully created");
+            }
         }
     },
     finishEndGameConversations: (phoneNumbers) => {

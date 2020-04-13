@@ -19,6 +19,9 @@ const ADD_USER_THREAD = 'addUser';
 const ADDED_USER_THREAD = 'addedUser';
 const CONTACT_ERROR_THREAD = 'contactError';
 const NAME_PATTERN = /^[a-zA-Z][a-zA-Z\-\s]+$/;
+const GAME_READY_VARIABLE = "gameReady";
+const GAME_USERS_VARIABLE = "gameUsers";
+const ERROR_RESPONSE = "Sorry, we encountered an error processing your request. Please try again or contact our support team at TODO.";
 
 let quitGameResponse = {
     pattern: QUIT_SETUP_KEYWORD,
@@ -56,7 +59,7 @@ module.exports = {
 
             module.exports.addCreatorAsUserQuestion(convo, phoneNumber);
 
-            module.exports.addContactsQuestion(convo, user, phoneNumber);
+            module.exports.addContactsQuestion(convo);
 
             convo.addMessage({
                 text: "Great, now let's get started setting up your first game!",
@@ -79,7 +82,7 @@ module.exports = {
             }, INVALID_INPUT_THREAD);
 
             convo.addMessage({
-                text: "Sorry, we encountered an error processing your request. Please try again or contact our support team at TODO.",
+                text: ERROR_RESPONSE,
                 action: ADD_CONTACTS_THREAD
             }, ERROR_THREAD);
 
@@ -100,6 +103,10 @@ module.exports = {
                 text: `Oops! You don't have enough other players. Please add at least ${setupUtils.MINIMUM_PLAYER_COUNT - 1} total contacts.`,
                 action: ADD_CONTACTS_THREAD,
             }, NOT_READY_YET_THREAD);
+
+            convo.on('end', (convo) => {
+                module.exports.onConversationEnd(convo, user, phoneNumber);
+            });
 
             convo.activate();
         }); 
@@ -129,7 +136,7 @@ Text "${QUIT_SETUP_KEYWORD}" at any time to quit the setup process.`, [
         ], {}, ADD_USER_THREAD);
     },
     // TODO: Pull out callbacks as separate functions
-    addContactsQuestion: async (convo, currentUser, phoneNumber) => {
+    addContactsQuestion: async (convo) => {
         let users = [];
 
         convo.addQuestion(`Time to set up your game! Text me at least ${setupUtils.MINIMUM_PLAYER_COUNT - 1} total contacts to be able to start your game.
@@ -139,22 +146,9 @@ Text "${QUIT_SETUP_KEYWORD}" at any time to quit the setup process.`, [
                 pattern: DONE_ADDING_CONTACTS_KEYWORD,
                 callback: async (response, convo) => {
                     if (setupUtils.isGameReady(users)) {
-                        try {
-                            if (!currentUser) {
-                                currentUser = await utils.getUserByPhoneNumber(phoneNumber);
-                            }
-
-                            let turns = await setupUtils.setupGame(users, [[currentUser]]);
-                            if (Array.isArray(turns) && turns.length > 0) {
-                                convo.gotoThread(START_GAME_THREAD);
-                                turnConversation.takeFirstTurn(turns[0].gameId);
-                            } else {
-                                convo.gotoThread(ERROR_THREAD);
-                            }
-                        } catch (err) {
-                            console.log(err);
-                            convo.gotoThread(ERROR_THREAD);
-                        }
+                        convo.setVar(GAME_READY_VARIABLE, true);
+                        convo.setVar(GAME_USERS_VARIABLE, users);
+                        convo.gotoThread(START_GAME_THREAD);
                     } else {
                         convo.gotoThread(NOT_READY_YET_THREAD);
                     }
@@ -188,4 +182,26 @@ Text "${QUIT_SETUP_KEYWORD}" at any time to quit the setup process.`, [
             }
         ], {}, ADD_CONTACTS_THREAD);
     },
+    onConversationEnd: async (convo, currentUser, phoneNumber) => {
+        if (convo.vars[GAME_READY_VARIABLE] && convo.vars[GAME_READY_VARIABLE] == true) {
+            try {
+                if (!currentUser) {
+                    currentUser = await utils.getUserByPhoneNumber(phoneNumber);
+                }
+
+                let turns = await setupUtils.setupGame(convo.vars[GAME_USERS_VARIABLE], [[currentUser]]);
+                if (Array.isArray(turns) && turns.length > 0) {
+                    turnConversation.takeFirstTurn(turns[0].gameId);
+                } else {
+                    module.exports.sendGameFailedToSetupText(phoneNumber, ERROR_RESPONSE);
+                }
+            } catch (err) {
+                console.log(err);
+                module.exports.sendGameFailedToSetupText(phoneNumber, ERROR_RESPONSE);
+            }
+        }
+    },
+    sendGameFailedToSetupText: (phoneNumber, message) => {
+        utils.bot.say({text: message, channel: phoneNumber}, (err, response) => {});
+    }
 }
