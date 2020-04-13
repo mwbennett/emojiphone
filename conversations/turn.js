@@ -54,10 +54,17 @@ module.exports = {
                 convo.activate();
 
                 convo.gotoThread(TURN_THREAD);
+
+                convo.on('end', async (convo) => {
+                    if (currentTurn.nextUserId != null) {
+                        module.exports.beginNextTurn(currentTurn, currentMessageType);
+                    } else {
+                        module.exports.createEndGameConversations(currentTurn.gameId);
+                    }
+                })
             })
         });
     },
-
 
 
     /**
@@ -74,13 +81,8 @@ module.exports = {
                 callback: async (response, convo) => {
                     if (turnUtils.isValidResponse(response.Body, currentMessageType)) {
                         try {
-                            let turn = await currentTurn.update({message: response.Body, messageType: currentMessageType, receivedAt: new Date(), isCurrent: false});
+                            await currentTurn.update({message: response.Body, messageType: currentMessageType, receivedAt: new Date(), isCurrent: false});
                             convo.gotoThread(TURN_SUCCESS_THREAD);
-                            if (currentTurn.nextUserId != null) {
-                                module.exports.beginNextTurn(currentTurn, currentMessageType);
-                            } else {
-                                module.exports.createEndGameConversations(turn.gameId);
-                            }
                         } catch(err){
                             console.log(err);
                             convo.gotoThread(TURN_ERROR_THREAD);
