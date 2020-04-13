@@ -21,6 +21,7 @@ const CONTACT_ERROR_THREAD = 'contactError';
 const NAME_PATTERN = /^[a-zA-Z][a-zA-Z\-\s]+$/;
 const GAME_READY_VARIABLE = "gameReady";
 const GAME_USERS_VARIABLE = "gameUsers";
+const ERROR_RESPONSE = "Sorry, we encountered an error processing your request. Please try again or contact our support team at TODO.";
 
 let quitGameResponse = {
     pattern: QUIT_SETUP_KEYWORD,
@@ -81,7 +82,7 @@ module.exports = {
             }, INVALID_INPUT_THREAD);
 
             convo.addMessage({
-                text: "Sorry, we encountered an error processing your request. Please try again or contact our support team at TODO.",
+                text: ERROR_RESPONSE,
                 action: ADD_CONTACTS_THREAD
             }, ERROR_THREAD);
 
@@ -109,26 +110,6 @@ module.exports = {
 
             convo.activate();
         }); 
-    },
-    onConversationEnd: async (convo, currentUser, phoneNumber) => {
-        if (convo.vars[GAME_READY_VARIABLE] && convo.vars[GAME_READY_VARIABLE] == true) {
-            try {
-                if (!currentUser) {
-                    currentUser = await utils.getUserByPhoneNumber(phoneNumber);
-                }
-
-                let turns = await setupUtils.setupGame(convo.vars[GAME_USERS_VARIABLE], [[currentUser]]);
-                if (Array.isArray(turns) && turns.length > 0) {
-                    turnConversation.takeFirstTurn(turns[0].gameId);
-                } else {
-                    console.log("Game not correctly set up");
-                }
-            } catch (err) {
-                console.log(err);
-            }
-        } else {
-            console.log("Thread ended without game being successfully set up");
-        }
     },
     addCreatorAsUserQuestion: (convo, phoneNumber) => {
         let firstName; let lastName;
@@ -201,4 +182,26 @@ Text "${QUIT_SETUP_KEYWORD}" at any time to quit the setup process.`, [
             }
         ], {}, ADD_CONTACTS_THREAD);
     },
+    onConversationEnd: async (convo, currentUser, phoneNumber) => {
+        if (convo.vars[GAME_READY_VARIABLE] && convo.vars[GAME_READY_VARIABLE] == true) {
+            try {
+                if (!currentUser) {
+                    currentUser = await utils.getUserByPhoneNumber(phoneNumber);
+                }
+
+                let turns = await setupUtils.setupGame(convo.vars[GAME_USERS_VARIABLE], [[currentUser]]);
+                if (Array.isArray(turns) && turns.length > 0) {
+                    turnConversation.takeFirstTurn(turns[0].gameId);
+                } else {
+                    module.exports.sendGameFailedToSetupText(phoneNumber, ERROR_RESPONSE);
+                }
+            } catch (err) {
+                console.log(err);
+                module.exports.sendGameFailedToSetupText(phoneNumber, ERROR_RESPONSE);
+            }
+        }
+    },
+    sendGameFailedToSetupText: (phoneNumber, message) => {
+        utils.bot.say({text: message, channel: phoneNumber}, (err, response) => {});
+    }
 }
