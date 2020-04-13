@@ -104,7 +104,7 @@ module.exports = {
                 action: ADD_CONTACTS_THREAD,
             }, NOT_READY_YET_THREAD);
 
-            convo.on('end', async (convo) => {
+            convo.on('end', (convo) => {
                 module.exports.onConversationEnd(convo, user, phoneNumber);
             });
 

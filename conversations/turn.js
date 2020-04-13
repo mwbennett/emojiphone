@@ -136,9 +136,10 @@ module.exports = {
                 action: END_GAME_THREAD
             }, INVALID_INPUT_THREAD);
             convo.on('end', async(convo) => {
+                // Potentially use convo.vars if async double-game starting is still a problem
                 let responses = convo.extractResponses();
                 if (responses[END_GAME_PROMPT] && responses[END_GAME_PROMPT].toLowerCase() == RESTART_KEYWORD) {
-                    await module.exports.restartGame(game);
+                    module.exports.restartGame(game);
                 }
             })
             convo.setTimeout(SIX_HOURS_IN_MS);
