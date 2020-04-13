@@ -15,6 +15,7 @@ const INVALID_INPUT_THREAD = "invalid";
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
 const END_GAME_THREAD = "endGame";
 const ANOTHER_USER_RESTARTED_THREAD = "anotherRestarted";
+const END_GAME_PROMPT = `To restart your game, simply respond with "${RESTART_KEYWORD}" in the next six hours.`;
 
 const INITIAL_TURN_PROMPT = "Welcome to Emojiphone! You're the first player, so all you need to do is respond with a phrase or sentence that is easy to describe with emojis!";
 
@@ -103,21 +104,20 @@ module.exports = {
         }
     },
     createEndGameConversation: async (message, phoneNumber, phoneNumbers,  gameId) => {
+        let game = await models.game.findByPk(gameId);
         utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
             convo.addMessage({
                 text: message,
                 action: END_GAME_THREAD
             })
             
-            convo.addQuestion(`To restart your game, simply respond with "${RESTART_KEYWORD}" in the next six hours.`, 
-                [
-                {
+            convo.addQuestion(END_GAME_PROMPT, 
+                [{
                     pattern: RESTART_KEYWORD,
                     callback: async (response, convo) => {
-                        let game = await models.game.findOne({where: {id: gameId}, attributes: ["restarted"]})
                         if (!game.restarted) {
-                            phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), phoneNumbers.indexOf(phoneNumber));
-                            await module.exports.restartGame(gameId, phoneNumbers);
+                            phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), 1);
+                            module.exports.finishEndGameConversations(phoneNumbers);
                             convo.gotoThread(GAME_RESTARTED_THREAD);
                         } else {
                             convo.gotoThread(ALREADY_RESTARTED_THREAD);
@@ -138,18 +138,25 @@ module.exports = {
                 text: `Sorry, I couldn't understand you.`,
                 action: END_GAME_THREAD
             }, INVALID_INPUT_THREAD);
+            convo.on('end', async(convo) => {
+                let responses = convo.extractResponses();
+                if (responses[END_GAME_PROMPT] && responses[END_GAME_PROMPT].toLowerCase() == RESTART_KEYWORD) {
+                    await module.exports.restartGame(game);
+                }
+            })
             convo.setTimeout(SIX_HOURS_IN_MS);
             convo.activate();
         })
     },
-    restartGame: async (gameId, otherUsersPhoneNumbers) => {
-        module.exports.finishEndGameConversations(otherUsersPhoneNumbers);
-        await models.game.update({restarted: true}, {where: {id: gameId}});
-        let newGameTurns = await setupUtils.setupPreviouslyPlayedGame(gameId);
-        if (Array.isArray(newGameTurns) && newGameTurns.length > 0) {
-            module.exports.takeFirstTurn(newGameTurns[0].gameId);
-        } else {
-            console.log("New game not successfully created");
+    restartGame: async (game) => {
+        if (!game.restarted) {
+            game.update({restarted: true});
+            let newGameTurns = await setupUtils.setupPreviouslyPlayedGame(game.id);
+            if (Array.isArray(newGameTurns) && newGameTurns.length > 0) {
+                module.exports.takeFirstTurn(newGameTurns[0].gameId);
+            } else {
+                console.log("New game not successfully created");
+            }
         }
     },
     finishEndGameConversations: (phoneNumbers) => {
