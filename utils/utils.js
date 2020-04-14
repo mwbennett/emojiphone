@@ -2,7 +2,10 @@ process.env.NODE_ENV = (process.env.NODE_ENV) ? process.env.NODE_ENV :  "develop
 require('custom-env').env(true);
 
 const vCard = require('vcard');
-var Botkit = require('botkit');
+// var Botkit = require('botkit');
+const { Botkit } = require('botkit');
+const { TwilioAdapter } = require('botbuilder-adapter-twilio-sms');
+
 var fetch = require('node-fetch');
 const models = require('../models');
 
@@ -32,12 +35,16 @@ module.exports = {
         });
     },
     createBot: () => {
-        module.exports.controller = Botkit.twiliosmsbot({
+        let adapter = new TwilioAdapter({
             debug: true,
             account_sid: process.env.TWILIO_ACCOUNT_SID,
             auth_token: process.env.TWILIO_AUTH_TOKEN,
             twilio_number: process.env.TWILIO_PHONE_NUMBER,
         });
+
+        module.exports.controller = new Botkit({
+            adapter: adapter
+        })
 
         module.exports.bot = module.exports.controller.spawn({});
     },
