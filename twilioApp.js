@@ -10,21 +10,25 @@ const android = 'android';
 const acceptablePlatforms = [android, ios];
 
 module.exports = {
-    setup: function() {
-        utils.createBot();
+    setup: async function() {
+        await utils.createBot();
+
+        utils.controller.webserver.get('/mmsLink/:platform/:gameId', async(req, res) => {
+            let platform = req.params.platform.toLowerCase();
+            if (acceptablePlatforms.indexOf(platform) == -1) {
+                return res.status(400).send("Platform must be 'ios' or 'android'");
+            }
+            let url = await mmsUtils.makeMmsUrl(req.params.gameId, platform);
+            res.set('location', url);
+            res.status(301).send()
+            
+        })
+
         // utils.controller.setupWebserver(5000, function(err, server) {
         //     server.get('/', function(req, res) {
         //         res.send(':)');
         //     });
         //     server.get('/mmsLink/:platform/:gameId', async function(req, res) {
-        //         let platform = req.params.platform.toLowerCase();
-        //         if (acceptablePlatforms.indexOf(platform) == -1) {
-        //             return res.status(400).send("Platform must be 'ios' or 'android'");
-        //         }
-        //         let url = await mmsUtils.makeMmsUrl(req.params.gameId, platform);
-        //         console.log(url);
-        //         res.set('location', url);
-        //         res.status(301).send()
         //     })
         //     utils.controller.createWebhookEndpoints(server, utils.bot);
         // })
@@ -46,11 +50,11 @@ module.exports = {
         // ]);
 
         // setupUtils.restartGameById(14);
-        // turnConversation.createEndGameConversations(47);
+        // turnConversation.createEndGameConversations(31);
         // turnConversation.restartGame(35, ["+19196183270", "+19198684114"]);
         // turnConversation.takeFirstTurn(74);
         // Initiate a turn on app start:
-        // models.turn.findByPk(111, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(currentTurn => {
+        // models.turn.findByPk(69, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(currentTurn => {
         //     turnConversation.initiateTurnConversation(currentTurn, "text", "Take yer turn, nerd");
         // })
     }
