@@ -20,8 +20,12 @@ module.exports = {
             }
             let url = await mmsUtils.makeMmsUrl(req.params.gameId, platform);
             res.set('location', url);
-            res.status(301).send()
-            
+            res.status(301).send()            
+        })
+
+        utils.controller.webserver.get('/restart/:gameId', async(req, res) => {
+            turnConversation.restartGame(req.params.gameId);
+            res.status(200).send("Success!");
         })
 
         // utils.controller.setupWebserver(5000, function(err, server) {

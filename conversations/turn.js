@@ -156,12 +156,19 @@ module.exports = {
         await utils.bot.beginDialog(dialogId);
 
     },
-    restartGame: async (game) => {
+    restartGame: async (gameId) => {
+        let game = await models.game.findByPk(gameId);
         if (!game.restarted) {
             game.update({restarted: true});
-            let newGameTurns = await setupUtils.setupPreviouslyPlayedGame(game.id);
-            if (Array.isArray(newGameTurns) && newGameTurns.length > 0) {
-                module.exports.takeFirstTurn(newGameTurns[0].gameId);
+            let turnsObject = await setupUtils.setupPreviouslyPlayedGame(game.id);
+            let previousTurns = turnsObject.previousTurns;
+            let newTurns = turnsObject.newTurns;
+            if (Array.isArray(previousTurns) && previousTurns.length > 0 && Array.isArray(newTurns) && newTurns.length > 0) {
+                for (let turn of previousTurns) {
+                    await utils.bot.startConversationWithUser(turn.user.phoneNumber);
+                    await utils.bot.say("Your game was restarted! Sit back and relax until it's your turn.")
+                }
+                module.exports.takeFirstTurn(newTurns[0].gameId);
             } else {
                 console.log("New game not successfully created");
             }
