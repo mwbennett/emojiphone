@@ -39,8 +39,6 @@ module.exports = {
      */
     initiateGameConversation: async (message, bot) => {
         let convo = new BotkitConversation('setup', utils.controller);
-        // utils.bot.createConversation(message, async (err, convo) => {
-        console.log(message.channel);
         let phoneNumber = phone(message.channel)[0];
         let user;
         try {
@@ -108,19 +106,12 @@ module.exports = {
             action: ADD_CONTACTS_THREAD,
         }, NOT_READY_YET_THREAD);
 
-        // convo.on('end', (convo) => {
-        //     module.exports.onConversationEnd(convo, user, phoneNumber);
-        // });
-
         convo.after(async(results, bot) => {
             module.exports.onConversationEnd(results, user, phoneNumber);
         })
 
         utils.controller.addDialog(convo);
         await bot.beginDialog('setup');
-
-        // convo.activate();
-        // }); 
     },
     addCreatorAsUserQuestion: (convo, phoneNumber) => {
         let firstName; let lastName;
@@ -194,7 +185,6 @@ Text "${QUIT_SETUP_KEYWORD}" at any time to quit the setup process.`, [
         ], {}, ADD_CONTACTS_THREAD);
     },
     onConversationEnd: async (results, currentUser, phoneNumber) => {
-        console.log(results);
         if (results[GAME_READY_VARIABLE] && results[GAME_READY_VARIABLE] == true) {
             try {
                 if (!currentUser) {
