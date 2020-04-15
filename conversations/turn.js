@@ -1,3 +1,4 @@
+const { BotkitConversation } = require('botkit');
 const utils = require('../utils/utils');
 const turnUtils = require('../utils/turn_utils');
 const setupUtils = require('../utils/setup_utils');
@@ -6,6 +7,8 @@ const MessageType = require('../types/message_type');
 
 const RESTART_KEYWORD = "again";
 
+const TURN_CONVERSATION = 'turn';
+const END_GAME_CONVERSATION = 'endGame';
 const TURN_SUCCESS_THREAD = "success";
 const TURN_FAIL_THREAD = "fail";
 const TURN_THREAD = "turn";
@@ -30,38 +33,39 @@ module.exports = {
      * @param  {String} turnPrompt  What to tell the user in order for them to take their turn (could vary whether it's the first player or any other)
      */
     initiateTurnConversation: async (currentTurn, currentMessageType, turnPrompt) => {
-
         currentTurn.update({isCurrent: true});
         let phoneNumber = currentTurn.user.phoneNumber;
-        utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
-            convo.addMessage({text: "Time to take your turn in your game of Emojiphone", action: TURN_THREAD});
+        let dialogId = TURN_CONVERSATION + currentTurn.id;
+        let convo = new BotkitConversation(dialogId, utils.controller);
 
-            convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
-            
-            convo.addMessage({
-                text: `Sorry your response was not written in ONLY ${currentMessageType}. Please try again!`,
-                action: TURN_THREAD
-            }, TURN_FAIL_THREAD);
+        await utils.bot.startConversationWithUser(phoneNumber);
+        convo.addMessage({text: "Time to take your turn in your game of Emojiphone", action: TURN_THREAD});
 
-            convo.addMessage({
-                text: "Sorry, we encountered an error processing your turn. Please try again or contact our support team at TODO.",
-                action: TURN_THREAD
-            }, TURN_ERROR_THREAD)
+        convo.addMessage('Thanks, your turn has been recorded! You will be notified when the game completes.', TURN_SUCCESS_THREAD);
+        
+        convo.addMessage({
+            text: `Sorry your response was not written in ONLY ${currentMessageType}. Please try again!`,
+            action: TURN_THREAD
+        }, TURN_FAIL_THREAD);
+
+        convo.addMessage({
+            text: "Sorry, we encountered an error processing your turn. Please try again or contact our support team at TODO.",
+            action: TURN_THREAD
+        }, TURN_ERROR_THREAD)
 
 
-            module.exports.addTurnQuestion(convo, currentTurn, turnPrompt, currentMessageType);
+        module.exports.addTurnQuestion(convo, currentTurn, turnPrompt, currentMessageType);
 
-
-            convo.activate();
-
-            convo.on('end', async (convo) => {
-                if (currentTurn.nextUserId != null) {
-                    module.exports.beginNextTurn(currentTurn, currentMessageType);
-                } else {
-                    module.exports.createEndGameConversations(currentTurn.gameId);
-                }
-            })
+        convo.after(async (results, bot) => {
+            if (currentTurn.nextUserId != null) {
+                module.exports.beginNextTurn(currentTurn, currentMessageType);
+            } else {
+                module.exports.createEndGameConversations(currentTurn.gameId);
+            }
         })
+
+        utils.controller.addDialog(convo);
+        await utils.bot.beginDialog(dialogId);
     },
 
 
@@ -76,18 +80,18 @@ module.exports = {
         convo.addQuestion(turnPrompt, 
             [{
                 default: true,
-                callback: async (response, convo) => {
-                    if (turnUtils.isValidResponse(response.Body, currentMessageType)) {
+                handler: async function(response, convo, bot, full_message) {
+                    if (turnUtils.isValidResponse(full_message.Body, currentMessageType)) {
                         try {
-                            await currentTurn.update({message: response.Body, messageType: currentMessageType, receivedAt: new Date(), isCurrent: false});
-                            convo.gotoThread(TURN_SUCCESS_THREAD);
+                            await currentTurn.update({message: full_message.Body, messageType: currentMessageType, receivedAt: new Date(), isCurrent: false});
+                            await convo.gotoThread(TURN_SUCCESS_THREAD);
                         } catch(err){
                             console.log(err);
-                            convo.gotoThread(TURN_ERROR_THREAD);
+                            await convo.gotoThread(TURN_ERROR_THREAD);
                         }
 
                     } else {
-                        convo.gotoThread(TURN_FAIL_THREAD);
+                        await convo.gotoThread(TURN_FAIL_THREAD);
                     }
                 }
             }], {}, TURN_THREAD
@@ -102,49 +106,55 @@ module.exports = {
     },
     createEndGameConversation: async (message, phoneNumber, phoneNumbers,  gameId) => {
         let game = await models.game.findByPk(gameId);
-        utils.bot.createConversation({channel: phoneNumber}, function(err, convo) {
-            convo.addMessage({
-                text: message,
-                action: END_GAME_THREAD
-            })
-            
-            convo.addQuestion(END_GAME_PROMPT, 
-                [{
-                    pattern: RESTART_KEYWORD,
-                    callback: async (response, convo) => {
-                        if (!game.restarted) {
-                            phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), 1);
-                            module.exports.finishEndGameConversations(phoneNumbers);
-                            convo.gotoThread(GAME_RESTARTED_THREAD);
-                        } else {
-                            convo.gotoThread(ALREADY_RESTARTED_THREAD);
-                        }
-                    }
-                },
-                {
-                    default: true,
-                    callback: async (response, convo) => {
-                        convo.gotoThread(INVALID_INPUT_THREAD);
-                    }
-                }], {}, END_GAME_THREAD
-            );
-            convo.addMessage({text: `Great, we've restarted your game! Just sit back and relax until it's your turn.`}, GAME_RESTARTED_THREAD);
-            convo.addMessage({text: `Another user just restarted your game! Just sit back and relax until it's your turn.`}, ANOTHER_USER_RESTARTED_THREAD);
-            convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
-            convo.addMessage({
-                text: `Sorry, I couldn't understand you.`,
-                action: END_GAME_THREAD
-            }, INVALID_INPUT_THREAD);
-            convo.on('end', async(convo) => {
-                // Potentially use convo.vars if async double-game starting is still a problem
-                let responses = convo.extractResponses();
-                if (responses[END_GAME_PROMPT] && responses[END_GAME_PROMPT].toLowerCase() == RESTART_KEYWORD) {
-                    module.exports.restartGame(game);
-                }
-            })
-            convo.setTimeout(SIX_HOURS_IN_MS);
-            convo.activate();
+
+        let dialogId = END_GAME_CONVERSATION + gameId + phoneNumber;
+        let convo = new BotkitConversation(dialogId, utils.controller);
+
+        await utils.bot.startConversationWithUser(phoneNumber);
+
+        convo.addMessage({
+            text: message,
+            action: END_GAME_THREAD
         })
+        
+        convo.addQuestion(END_GAME_PROMPT, 
+            [{
+                pattern: RESTART_KEYWORD,
+                handler: async function(response, convo, bot, full_message) {
+                    if (!game.restarted) {
+                        phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), 1);
+                        module.exports.finishEndGameConversations(phoneNumbers);
+                        await convo.gotoThread(GAME_RESTARTED_THREAD);
+                    } else {
+                        await convo.gotoThread(ALREADY_RESTARTED_THREAD);
+                    }
+                }
+            },
+            {
+                default: true,
+                handler: async function(response, convo, bot, full_message) {
+                    await convo.gotoThread(INVALID_INPUT_THREAD);
+                }
+            }], {}, END_GAME_THREAD
+        );
+        convo.addMessage({text: `Great, we've restarted your game! Just sit back and relax until it's your turn.`}, GAME_RESTARTED_THREAD);
+        convo.addMessage({text: `Another user just restarted your game! Just sit back and relax until it's your turn.`}, ANOTHER_USER_RESTARTED_THREAD);
+        convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
+        convo.addMessage({
+            text: `Sorry, I couldn't understand you.`,
+            action: END_GAME_THREAD
+        }, INVALID_INPUT_THREAD);
+        convo.after( async(results, bot) => {
+            // Potentially use convo.vars if async double-game starting is still a problem
+            if (results[END_GAME_PROMPT] && results[END_GAME_PROMPT].toLowerCase() == RESTART_KEYWORD) {
+                module.exports.restartGame(game);
+            }
+        })
+        // convo.setTimeout(SIX_HOURS_IN_MS);
+
+        utils.controller.addDialog(convo);
+        await utils.bot.beginDialog(dialogId);
+
     },
     restartGame: async (game) => {
         if (!game.restarted) {
@@ -158,7 +168,7 @@ module.exports = {
         }
     },
     finishEndGameConversations: (phoneNumbers) => {
-        let tasks = utils.controller.tasks.filter(task => phoneNumbers.indexOf(task.convos[0].context.channel) != -1)
+        let tasks = utils.controller.task().filter(task => phoneNumbers.indexOf(task.convos()[0].context.channel) != -1)
         for(let task of tasks) {
             task.convos[0].gotoThread(ANOTHER_USER_RESTARTED_THREAD);
         }

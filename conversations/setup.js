@@ -5,6 +5,7 @@ const utils = require('../utils/utils');
 const setupUtils = require('../utils/setup_utils');
 const turnConversation = require('./turn');
 
+const SETUP_CONVERSATION = 'setup';
 const DONE_ADDING_CONTACTS_KEYWORD = 'done';
 const QUIT_SETUP_KEYWORD = 'exit';
 const START_GAME_THREAD = 'startGame';
@@ -38,7 +39,7 @@ module.exports = {
      * @param  {object} message  The intial BotKit message that was passed into the listener
      */
     initiateGameConversation: async (message, bot) => {
-        let convo = new BotkitConversation('setup', utils.controller);
+        let convo = new BotkitConversation(SETUP_CONVERSATION, utils.controller);
         let phoneNumber = phone(message.channel)[0];
         let user;
         try {
@@ -111,7 +112,7 @@ module.exports = {
         })
 
         utils.controller.addDialog(convo);
-        await bot.beginDialog('setup');
+        await bot.beginDialog(SETUP_CONVERSATION);
     },
     addCreatorAsUserQuestion: (convo, phoneNumber) => {
         let firstName; let lastName;

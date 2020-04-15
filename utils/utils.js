@@ -6,6 +6,7 @@ const vCard = require('vcard');
 const { Botkit } = require('botkit');
 const { TwilioAdapter } = require('botbuilder-adapter-twilio-sms');
 
+
 var fetch = require('node-fetch');
 const models = require('../models');
 
@@ -34,7 +35,7 @@ module.exports = {
             });
         });
     },
-    createBot: () => {
+    createBot: async () => {
         let adapter = new TwilioAdapter({
             debug: true,
             account_sid: process.env.TWILIO_ACCOUNT_SID,
@@ -46,7 +47,7 @@ module.exports = {
             adapter: adapter
         })
 
-        module.exports.bot = module.exports.controller.spawn({});
+        module.exports.bot = await module.exports.controller.spawn({});
     },
     getUserByPhoneNumber: async (phoneNumber) => {
         let user = await models.user.findOne({where: {phoneNumber: phoneNumber}});        
