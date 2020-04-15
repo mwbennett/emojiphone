@@ -7,17 +7,21 @@ module.exports = {
         let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId, isGroupMessage);
         let phoneString = messageAndPhoneNumbers.phoneNumbers.join(',');
 
-        let url = "sms://"
+        let url = module.exports.makeBasicMmsUrl(platform, phoneString);
 
-        if (platform == "ios") {
-            url += `open?addresses=${phoneString};&`
-        } else if (platform == "android") {
-            url += `${phoneString};?`
-        }
-
-        url += `body=${encodeURI(messageAndPhoneNumbers.message)}`;
+        url += `${encodeURI(messageAndPhoneNumbers.message)}`;
 
         return url;
 
     },
+    makeBasicMmsUrl: async (platform, phoneString) => {
+        let url = "sms://"
+
+        if (platform == "ios") {
+            url += `open?addresses=${phoneString};&body=`
+        } else if (platform == "android") {
+            url += `${phoneString};?body=`
+        }
+        return url;
+    }
 }

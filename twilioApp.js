@@ -23,9 +23,15 @@ module.exports = {
             res.status(301).send()            
         })
 
-        utils.controller.webserver.get('/restart/:gameId', async(req, res) => {
-            turnConversation.restartGame(req.params.gameId);
-            res.status(200).send("Success!");
+        utils.controller.webserver.get('/restart/:platform/:gameId', async(req, res) => {
+            let platform = req.params.platform.toLowerCase();
+            if (acceptablePlatforms.indexOf(platform) == -1) {
+                return res.status(400).send("Platform must be 'ios' or 'android'");
+            }
+            await turnConversation.restartGame(req.params.gameId);
+            let url = await mmsUtils.makeBasicMmsUrl(platform, process.env.TWILIO_PHONE_NUMBER);
+            res.set('location', url);
+            res.status(301).send();
         })
 
         // utils.controller.setupWebserver(5000, function(err, server) {
