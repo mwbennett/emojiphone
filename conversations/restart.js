@@ -12,6 +12,7 @@ const ANOTHER_USER_RESTARTED_THREAD = "anotherRestarted";
 const WONT_RESTART_THREAD = "wontRestart";
 const RESTART_CONVERSATION = 'endGame';
 const GAME_RESTARTED_THREAD = "restarted";
+const DEFAULT_THREAD = 'default';
 
 module.exports = {
     initiateRestartConversation: async (message, bot) => {
@@ -56,7 +57,7 @@ module.exports = {
                 handler: async function(response, convo, bot, full_message) {
                     await outerConvo.addAction(WONT_RESTART_THREAD);
                 }
-            }], 'none', 'default'
+            }], 'none', DEFAULT_THREAD
         );
 
 
