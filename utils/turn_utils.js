@@ -12,6 +12,7 @@ const utils = require('../utils/utils');
 const textReg = /[a-zA-Z0-9\.\!\+\$\#\@\_\&\-\+\(\)\/\*\"\'\:\;\!\?\~\`\|\•\√\π\÷\×\¶\∆\£\¢\€\¥\^\°\=\{\}\\\]\[\✓\%\<\>\%\/\*\-\+\ç\ß\à\á\â\ä\æ\ã\å\ā\è\é\ē\ê\ë\û\ú\ù\ü\ū\î\ì\ï\í\ī\ó\ø\œ\ō\ô\ö\õ\ò\ñ]+/
 
 module.exports = {
+    RESTART_KEYWORD: 'again',
     isValidResponse: (response, messageType) => {
         response = response.replace(/\s+/g, '');
         if (messageType == MessageType.text) {
@@ -76,7 +77,9 @@ ${name}: ${userMessage.message}`
 If you'd like to start a group message to discuss your game, just click one of the following links!
 
 Android: ${process.env.SERVER_URL}/mmsLink/android/${gameId}
-iOS: ${process.env.SERVER_URL}/mmsLink/ios/${gameId}`
+iOS: ${process.env.SERVER_URL}/mmsLink/ios/${gameId}
+
+If you'd like to restart your game, simply send a message to this number with the word "${module.exports.RESTART_KEYWORD}".`
         }
 
         return {
@@ -85,6 +88,7 @@ iOS: ${process.env.SERVER_URL}/mmsLink/ios/${gameId}`
         };
 
     },
+    // Prob move to game utils.. And test those succahs
     getUsersAndMessagesFromGameId: async (gameId) => {
         return await models.turn.findAll(
             {

@@ -82,7 +82,8 @@ module.exports = {
     setupPreviouslyPlayedGame: async (gameId) => {
         let previousTurns = await module.exports.getActiveUsersByGameId(gameId);
         let users = previousTurns.map(turn => [turn.user]);
-        return module.exports.setupGame([], users);
+        let newTurns = await module.exports.setupGame([], users);
+        return {previousTurns: previousTurns, newTurns: newTurns}
     },
     /**
     * Get users that participated (message not null) in a completed game
