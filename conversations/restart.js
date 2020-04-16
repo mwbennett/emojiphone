@@ -8,7 +8,6 @@ const utils = require('../utils/utils');
 const turnConversation = require('../conversations/turn');
 
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
-const ANOTHER_USER_RESTARTED_THREAD = "anotherRestarted";
 const WONT_RESTART_THREAD = "wontRestart";
 const RESTART_CONVERSATION = 'endGame';
 const GAME_RESTARTED_THREAD = "restarted";
@@ -19,6 +18,12 @@ module.exports = {
         try {
             let phoneNumber = phone(message.channel)[0];
             let game = await gameUtils.getLastPlayedGameByPhoneNumber(phoneNumber);
+
+            if (await gameUtils.isGameStillInProgress(game.id)) {
+                await utils.bot.startConversationWithUser(phoneNumber);
+                await utils.bot.say("Please wait until your game completes before trying to restart it.");
+                return;
+            }
 
             let dialogId = RESTART_CONVERSATION + game.id + phoneNumber;
             let convo = new BotkitConversation(dialogId, utils.controller);
