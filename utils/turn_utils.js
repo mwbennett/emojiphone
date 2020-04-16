@@ -34,7 +34,6 @@ module.exports = {
     },
     sendEndGameMessage: async (gameId) => {
         let messageAndPhoneNumbers = await module.exports.getEndGameMessageWithPhoneNumbers(gameId);
-        console.log(messageAndPhoneNumbers);
 
         for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
             console.log(phoneNumber);
@@ -73,10 +72,16 @@ ${name}: ${userMessage.message}`
         if (!isGroupMessage) {
             message += `
 
-If you'd like to start a group message to discuss your game, just click one of the following links!
+If you'd like to RESTART your game, just click one of these links:
+
+Android: ${process.env.SERVER_URL}/restart/android/${gameId}
+iOS: ${process.env.SERVER_URL}/restart/ios/${gameId}
+
+If you'd like to start a GROUP MESSAGE to discuss your game, just click one of the following links!
 
 Android: ${process.env.SERVER_URL}/mmsLink/android/${gameId}
-iOS: ${process.env.SERVER_URL}/mmsLink/ios/${gameId}`
+iOS: ${process.env.SERVER_URL}/mmsLink/ios/${gameId}
+`
         }
 
         return {

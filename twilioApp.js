@@ -14,13 +14,15 @@ module.exports = {
         await utils.createBot();
 
         utils.controller.webserver.get('/mmsLink/:platform/:gameId', async(req, res) => {
+
             let platform = req.params.platform.toLowerCase();
             if (acceptablePlatforms.indexOf(platform) == -1) {
                 return res.status(400).send("Platform must be 'ios' or 'android'");
             }
             let url = await mmsUtils.makeMmsUrl(req.params.gameId, platform);
             res.set('location', url);
-            res.status(301).send()            
+            res.status(301).send();
+            // res.status(200).send(url);
         })
 
         utils.controller.webserver.get('/restart/:platform/:gameId', async(req, res) => {
@@ -60,11 +62,11 @@ module.exports = {
         // ]);
 
         // setupUtils.restartGameById(14);
-        // turnConversation.createEndGameConversations(31);
+        turnConversation.createEndGameConversations(94);
         // turnConversation.restartGame(35, ["+19196183270", "+19198684114"]);
         // turnConversation.takeFirstTurn(74);
         // Initiate a turn on app start:
-        // models.turn.findByPk(69, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(currentTurn => {
+        // models.turn.findByPk(194, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(currentTurn => {
         //     turnConversation.initiateTurnConversation(currentTurn, "text", "Take yer turn, nerd");
         // })
     }

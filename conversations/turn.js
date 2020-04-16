@@ -107,53 +107,50 @@ module.exports = {
     createEndGameConversation: async (message, phoneNumber, phoneNumbers,  gameId) => {
         let game = await models.game.findByPk(gameId);
 
-        let dialogId = END_GAME_CONVERSATION + gameId + phoneNumber;
-        let convo = new BotkitConversation(dialogId, utils.controller);
+        // let dialogId = END_GAME_CONVERSATION + gameId + phoneNumber;
+        // let convo = new BotkitConversation(dialogId, utils.controller);
 
         await utils.bot.startConversationWithUser(phoneNumber);
 
-        convo.addMessage({
-            text: message,
-            action: END_GAME_THREAD
-        })
+        await utils.bot.say(message)
         
-        convo.addQuestion(END_GAME_PROMPT, 
-            [{
-                pattern: RESTART_KEYWORD,
-                handler: async function(response, convo, bot, full_message) {
-                    if (!game.restarted) {
-                        phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), 1);
-                        module.exports.finishEndGameConversations(phoneNumbers);
-                        await convo.gotoThread(GAME_RESTARTED_THREAD);
-                    } else {
-                        await convo.gotoThread(ALREADY_RESTARTED_THREAD);
-                    }
-                }
-            },
-            {
-                default: true,
-                handler: async function(response, convo, bot, full_message) {
-                    await convo.gotoThread(INVALID_INPUT_THREAD);
-                }
-            }], {}, END_GAME_THREAD
-        );
-        convo.addMessage({text: `Great, we've restarted your game! Just sit back and relax until it's your turn.`}, GAME_RESTARTED_THREAD);
-        convo.addMessage({text: `Another user just restarted your game! Just sit back and relax until it's your turn.`}, ANOTHER_USER_RESTARTED_THREAD);
-        convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
-        convo.addMessage({
-            text: `Sorry, I couldn't understand you.`,
-            action: END_GAME_THREAD
-        }, INVALID_INPUT_THREAD);
-        convo.after( async(results, bot) => {
-            // Potentially use convo.vars if async double-game starting is still a problem
-            if (results[END_GAME_PROMPT] && results[END_GAME_PROMPT].toLowerCase() == RESTART_KEYWORD) {
-                module.exports.restartGame(game);
-            }
-        })
-        // convo.setTimeout(SIX_HOURS_IN_MS);
+        // convo.addQuestion(END_GAME_PROMPT, 
+        //     [{
+        //         pattern: RESTART_KEYWORD,
+        //         handler: async function(response, convo, bot, full_message) {
+        //             if (!game.restarted) {
+        //                 phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), 1);
+        //                 module.exports.finishEndGameConversations(phoneNumbers);
+        //                 await convo.gotoThread(GAME_RESTARTED_THREAD);
+        //             } else {
+        //                 await convo.gotoThread(ALREADY_RESTARTED_THREAD);
+        //             }
+        //         }
+        //     },
+        //     {
+        //         default: true,
+        //         handler: async function(response, convo, bot, full_message) {
+        //             await convo.gotoThread(INVALID_INPUT_THREAD);
+        //         }
+        //     }], {}, END_GAME_THREAD
+        // );
+        // convo.addMessage({text: `Great, we've restarted your game! Just sit back and relax until it's your turn.`}, GAME_RESTARTED_THREAD);
+        // convo.addMessage({text: `Another user just restarted your game! Just sit back and relax until it's your turn.`}, ANOTHER_USER_RESTARTED_THREAD);
+        // convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
+        // convo.addMessage({
+        //     text: `Sorry, I couldn't understand you.`,
+        //     action: END_GAME_THREAD
+        // }, INVALID_INPUT_THREAD);
+        // convo.after( async(results, bot) => {
+        //     // Potentially use convo.vars if async double-game starting is still a problem
+        //     if (results[END_GAME_PROMPT] && results[END_GAME_PROMPT].toLowerCase() == RESTART_KEYWORD) {
+        //         module.exports.restartGame(game);
+        //     }
+        // })
+        // // convo.setTimeout(SIX_HOURS_IN_MS);
 
-        utils.controller.addDialog(convo);
-        await utils.bot.beginDialog(dialogId);
+        // utils.controller.addDialog(convo);
+        // await utils.bot.beginDialog(dialogId);
 
     },
     restartGame: async (gameId) => {

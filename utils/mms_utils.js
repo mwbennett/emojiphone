@@ -7,7 +7,7 @@ module.exports = {
         let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId, isGroupMessage);
         let phoneString = messageAndPhoneNumbers.phoneNumbers.join(',');
 
-        let url = module.exports.makeBasicMmsUrl(platform, phoneString);
+        let url = await module.exports.makeBasicMmsUrl(platform, phoneString);
 
         url += `${encodeURI(messageAndPhoneNumbers.message)}`;
 
