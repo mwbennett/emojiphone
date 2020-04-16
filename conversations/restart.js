@@ -5,6 +5,7 @@ const turnUtils = require('../utils/turn_utils');
 const setupUtils = require('../utils/setup_utils');
 const gameUtils = require('../utils/game_utils');
 const utils = require('../utils/utils');
+const turnConversation = require('../conversations/turn');
 
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
 const ANOTHER_USER_RESTARTED_THREAD = "anotherRestarted";
@@ -13,8 +14,6 @@ const RESTART_CONVERSATION = 'endGame';
 const GAME_RESTARTED_THREAD = "restarted";
 
 module.exports = {
-    RESTART_KEYWORD: "again",
-
     initiateRestartConversation: async (message, bot) => {
         try {
             let phoneNumber = phone(message.channel)[0];
@@ -35,28 +34,29 @@ module.exports = {
             console.log("ERROR", err);
         }
     },
-    addRestartQuestion: async (convo, game) => {
+    addRestartQuestion: async (outerConvo, game) => {
         let turns = await turnUtils.getUsersAndMessagesFromGameId(game.id);
         let firstNames = turns.map(turn => turn.user.firstName);
 
-        let restartPrompt = `You're about to start a game with ${firstNames.join(', ')}. Respond with YES to continue.`
-        convo.addQuestion(restartPrompt, 
+        let restartPrompt = `You're about to start a game with the following people: ${firstNames.join(', ')}. Respond with YES to continue.`
+        outerConvo.addQuestion(restartPrompt, 
             [{
                 pattern: 'yes',
                 handler: async function(response, convo, bot, full_message) {
                     if (!game.restarted) {
-                        await convo.gotoThread(GAME_RESTARTED_THREAD);
+                        await outerConvo.addAction('complete');
+                        await module.exports.restartGame(game);
                     } else {
-                        await convo.gotoThread(ALREADY_RESTARTED_THREAD);
+                        await outerConvo.addAction(ALREADY_RESTARTED_THREAD);
                     }
                 }
             },
             {
                 default: true,
                 handler: async function(response, convo, bot, full_message) {
-                    await convo.gotoThread(WONT_RESTART_THREAD);
+                    await outerConvo.addAction(WONT_RESTART_THREAD);
                 }
-            }], {}, 'default'
+            }], 'none', 'default'
         );
 
 
@@ -64,9 +64,15 @@ module.exports = {
     restartGame: async (game) => {
         if (!game.restarted) {
             game.update({restarted: true});
-            let newGameTurns = await setupUtils.setupPreviouslyPlayedGame(game.id);
-            if (Array.isArray(newGameTurns) && newGameTurns.length > 0) {
-                module.exports.takeFirstTurn(newGameTurns[0].gameId);
+            let turnsObject = await setupUtils.setupPreviouslyPlayedGame(game.id);
+            let previousTurns = turnsObject.previousTurns;
+            let newTurns = turnsObject.newTurns;
+            if (Array.isArray(previousTurns) && previousTurns.length > 0 && Array.isArray(newTurns) && newTurns.length > 0) {
+                for (let turn of previousTurns) {
+                    await utils.bot.startConversationWithUser(turn.user.phoneNumber);
+                    await utils.bot.say("Your game was restarted! Sit back and relax until it's your turn.")
+                }
+                turnConversation.takeFirstTurn(newTurns[0].gameId);
             } else {
                 console.log("New game not successfully created");
             }

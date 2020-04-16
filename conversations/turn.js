@@ -90,19 +90,11 @@ module.exports = {
     },
     createEndGameConversations: async (gameId) => {
         let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId);
-        for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
-            module.exports.createEndGameConversation(messageAndPhoneNumbers.message, phoneNumber, messageAndPhoneNumbers.phoneNumbers, gameId);
-        }
-    },
-    createEndGameConversation: async (message, phoneNumber, phoneNumbers,  gameId) => {
         let game = await models.game.findByPk(gameId);
-
-        let dialogId = END_GAME_CONVERSATION + gameId + phoneNumber;
-        let convo = new BotkitConversation(dialogId, utils.controller);
-
-        await utils.bot.startConversationWithUser(phoneNumber);
-        await utils.bot.say(message);
-
+        for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
+            await utils.bot.startConversationWithUser(phoneNumber);
+            await utils.bot.say(messageAndPhoneNumbers.message);
+        }
     },
 
     /**
