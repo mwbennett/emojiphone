@@ -3,40 +3,48 @@ const { BotkitConversation } = require('botkit');
 
 const turnUtils = require('../utils/turn_utils');
 const setupUtils = require('../utils/setup_utils');
+const gameUtils = require('../utils/game_utils');
+const utils = require('../utils/utils');
 
-const RESTART_KEYWORD = "again";
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
-const END_GAME_THREAD = "endGame";
 const ANOTHER_USER_RESTARTED_THREAD = "anotherRestarted";
 const WONT_RESTART_THREAD = "wontRestart";
-const RESTART_PROMPT = `To restart your game, simply respond with "${RESTART_KEYWORD}" in the next six hours.`;
+const RESTART_CONVERSATION = 'endGame';
+const GAME_RESTARTED_THREAD = "restarted";
 
 module.exports = {
+    RESTART_KEYWORD: "again",
 
     initiateRestartConversation: async (message, bot) => {
-        let phoneNumber = phone(message.channel)[0];
-        let game = await getLastPlayedByPhoneNumber(phoneNumber);
+        try {
+            let phoneNumber = phone(message.channel)[0];
+            let game = await gameUtils.getLastPlayedGameByPhoneNumber(phoneNumber);
 
-        let dialogId = END_GAME_CONVERSATION + game.id + phoneNumber;
-        let convo = new BotkitConversation(dialogId, utils.controller);
-        await utils.bot.startConversationWithUser(phoneNumber);
+            let dialogId = RESTART_CONVERSATION + game.id + phoneNumber;
+            let convo = new BotkitConversation(dialogId, utils.controller);
+            await utils.bot.startConversationWithUser(phoneNumber);
 
-        convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
-        await addRestartQuestion();
+            convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
+            convo.addMessage({text: `Great, we've restarted your game! Just sit back and relax until it's your turn.`}, GAME_RESTARTED_THREAD);
+            convo.addMessage({text: `Ok, your game won't be restarted.`}, WONT_RESTART_THREAD);
+            await module.exports.addRestartQuestion(convo, game);
 
-        await utils.controller.addDialog(convo);
-        await utils.bot.beginDialog(dialogId);
+            await utils.controller.addDialog(convo);
+            await utils.bot.beginDialog(dialogId);
+        } catch (err) {
+            console.log("ERROR", err);
+        }
     },
-    addRestartQuestion: async (convo, phoneNumber, phoneNumbers,  gameId) => {
-        let firstNames = await getFirstNamesByGameId(gameId);
+    addRestartQuestion: async (convo, game) => {
+        let turns = await turnUtils.getUsersAndMessagesFromGameId(game.id);
+        let firstNames = turns.map(turn => turn.user.firstName);
+
         let restartPrompt = `You're about to start a game with ${firstNames.join(', ')}. Respond with YES to continue.`
-        convo.addQuestion(RESTART_PROMPT, 
+        convo.addQuestion(restartPrompt, 
             [{
-                pattern: utils.bot.utternaces.yes,
+                pattern: 'yes',
                 handler: async function(response, convo, bot, full_message) {
                     if (!game.restarted) {
-                        phoneNumbers.splice(phoneNumbers.indexOf(phoneNumber), 1);
-                        module.exports.finishEndGameConversations(phoneNumbers);
                         await convo.gotoThread(GAME_RESTARTED_THREAD);
                     } else {
                         await convo.gotoThread(ALREADY_RESTARTED_THREAD);
@@ -48,10 +56,8 @@ module.exports = {
                 handler: async function(response, convo, bot, full_message) {
                     await convo.gotoThread(WONT_RESTART_THREAD);
                 }
-            }], {}, END_GAME_THREAD
+            }], {}, 'default'
         );
-        convo.addMessage({text: `Great, we've restarted your game! Just sit back and relax until it's your turn.`}, GAME_RESTARTED_THREAD);
-        convo.addMessage({text: `Ok, your game won't be restarted.`}, WONT_RESTART_THREAD);
 
 
     },

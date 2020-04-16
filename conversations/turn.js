@@ -5,13 +5,10 @@ const models = require('../models');
 const MessageType = require('../types/message_type');
 
 const TURN_CONVERSATION = 'turn';
-const END_GAME_CONVERSATION = 'endGame';
 const TURN_SUCCESS_THREAD = "success";
 const TURN_FAIL_THREAD = "fail";
 const TURN_THREAD = "turn";
 const TURN_ERROR_THREAD = "error";
-const GAME_RESTARTED_THREAD = "restart";
-const INVALID_INPUT_THREAD = "invalid";
 
 const INITIAL_TURN_PROMPT = "Welcome to Emojiphone! You're the first player, so all you need to do is respond with a phrase or sentence that is easy to describe with emojis!";
 
