@@ -88,6 +88,7 @@ If you'd like to restart your game, simply send a message to this number with th
         };
 
     },
+    // Prob move to game utils.. And test those succahs
     getUsersAndMessagesFromGameId: async (gameId) => {
         return await models.turn.findAll(
             {

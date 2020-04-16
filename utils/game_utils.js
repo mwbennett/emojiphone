@@ -19,7 +19,9 @@ module.exports = {
             ]
         })
 
-        return await models.game.findByPk(lastPlayedTurn.gameId);
+        if (lastPlayedTurn) {
+            return await models.game.findByPk(lastPlayedTurn.gameId);
+        }
     },
     isGameStillInProgress: async (gameId) => {
         let count = await models.turn.count({

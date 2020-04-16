@@ -6,6 +6,7 @@ const setupUtils = require('../utils/setup_utils');
 const gameUtils = require('../utils/game_utils');
 const utils = require('../utils/utils');
 const turnConversation = require('../conversations/turn');
+const setupConversation = require('../conversations/setup');
 
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
 const WONT_RESTART_THREAD = "wontRestart";
@@ -18,6 +19,12 @@ module.exports = {
         try {
             let phoneNumber = phone(message.channel)[0];
             let game = await gameUtils.getLastPlayedGameByPhoneNumber(phoneNumber);
+
+            if (!game) {
+                await utils.bot.startConversationWithUser(phoneNumber);
+                await utils.bot.say(`You haven't played any games yet. Text me the word "${setupConversation.INITIATE_GAME_KEYWORD}" to begin your first game!`);
+                return;
+            }
 
             if (await gameUtils.isGameStillInProgress(game.id)) {
                 await utils.bot.startConversationWithUser(phoneNumber);
