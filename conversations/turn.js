@@ -114,17 +114,20 @@ module.exports = {
      */
     beginNextTurn: async (completedTurn) => {
         await models.turn.update({isCurrent: true}, {where: {userId: completedTurn.nextUserId, gameId: completedTurn.gameId}});
-        let turnBot = await utils.controller.spawn({});
-        await turnBot.startConversationWithUser(completedTurn.nextUser.phoneNumber);
-        await turnBot.beginDialog(TURN_CONVERSATION);
+        await module.exports.takeTurn(completedTurn.nextUser.phoneNumber)
     },
-
     /**
      * Given the game identifier, start the first turn of the game!
      * @param  {integer} gameId   gameId of game that needs to begin
      */
     takeFirstTurn: async (gameId) => {
         let currentTurn = await turnUtils.getCurrentTurn(gameId);
-        module.exports.initiateTurnConversation(currentTurn, MessageType.text, INITIAL_TURN_PROMPT);
+        await module.exports.takeTurn(currentTurn.user.phoneNumber)
+    },
+    takeTurn: async (phoneNumber) => {
+        let turnBot = await utils.controller.spawn({});
+        await turnBot.startConversationWithUser(phoneNumber);
+        await turnBot.beginDialog(TURN_CONVERSATION);
     }
+
 }
