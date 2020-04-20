@@ -28,14 +28,7 @@ module.exports = {
 
         await restartConversation.setupRestartConversation();
         await turnConversation.setupTurnConversation();
-
-        try {
-            let turnBot = await utils.controller.spawn({});
-            await turnBot.startConversationWithUser("+19198684114");
-            await turnBot.beginDialog("turn");
-        } catch (e) {
-            console.log (e);
-        }
+        await setupConversation.setupSetupConversation();
 
         // utils.controller.setupWebserver(5000, function(err, server) {
         //     server.get('/', function(req, res) {
@@ -45,7 +38,13 @@ module.exports = {
         //     })
         //     utils.controller.createWebhookEndpoints(server, utils.bot);
         // })
-        utils.controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message', async (bot, message) => {setupConversation.initiateGameConversation(message, bot)});    
+        utils.controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message', async (bot, message) => {
+            try {
+                await bot.beginDialog(setupConversation.SETUP_CONVERSATION);
+            } catch(e) {
+                console.log(e);
+            }
+        });    
         utils.controller.hears([turnUtils.RESTART_KEYWORD], 'message', async (bot, message) => {
             // TODO!!!
             await bot.beginDialog("endGame");

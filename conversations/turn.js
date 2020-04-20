@@ -52,7 +52,7 @@ module.exports = {
             } else {
                 await inConvo.setVar("currentMessageType", turnUtils.oppositeMessageType(previousTurn.messageType));
             }
-            inConvo.setVar("turnPrompt", turnUtils.makeTurnPrompt(previousTurn, inConvo.vars.currentMessageType));
+            await inConvo.setVar("turnPrompt", turnUtils.makeTurnPrompt(previousTurn, inConvo.vars.currentMessageType));
         });
         convo.after(async (results, bot) => {
             let currentTurn = await models.turn.findByPk(results.currentTurnId, {include: [{model: models.user, as: "nextUser"}]});
