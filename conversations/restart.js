@@ -41,6 +41,8 @@ module.exports = {
                     console.log("ERR", e);
                 }
             })
+
+            // TODO: complete convo here!!
             convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
             convo.addMessage({text: `Great, we've restarted your game! Just sit back and relax until it's your turn.`}, GAME_RESTARTED_THREAD);
             convo.addMessage({text: `Ok, your game won't be restarted.`}, WONT_RESTART_THREAD);

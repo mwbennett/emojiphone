@@ -33,6 +33,12 @@ module.exports = {
     getCurrentTurn: async (gameId) => {
         return await models.turn.findOne({where: {gameId: gameId, isCurrent: true}, include: [{model: models.user, as: "user"}]})
     },
+    getTurnByPhoneNumber: async (phoneNumber) => {
+        return await models.turn.findOne({where: {"$user.phoneNumber$": phoneNumber, isCurrent: true}, include: [{model: models.user, as: "user"}]})
+    },
+    getPreviousTurn: async (currentTurn) => {
+        return await models.turn.findOne({where: {gameId: currentTurn.gameId, nextUserId: currentTurn.userId}})
+    },
     sendEndGameMessage: async (gameId) => {
         let messageAndPhoneNumbers = await module.exports.getEndGameMessageWithPhoneNumbers(gameId);
         console.log(messageAndPhoneNumbers);
