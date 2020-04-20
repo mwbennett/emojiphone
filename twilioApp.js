@@ -26,6 +26,8 @@ module.exports = {
             
         })
 
+        await restartConversation.setupRestartConversation();
+
         // utils.controller.setupWebserver(5000, function(err, server) {
         //     server.get('/', function(req, res) {
         //         res.send(':)');
@@ -35,7 +37,9 @@ module.exports = {
         //     utils.controller.createWebhookEndpoints(server, utils.bot);
         // })
         utils.controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message', async (bot, message) => {setupConversation.initiateGameConversation(message, bot)});    
-        utils.controller.hears([turnUtils.RESTART_KEYWORD], 'message', async (bot, message) => {restartConversation.initiateRestartConversation(message, bot)});    
+        utils.controller.hears([turnUtils.RESTART_KEYWORD], 'message', async (bot, message) => {
+            await bot.beginDialog("endGame");
+        });    
 
         // setupUtils.setupGame([
         //     {
