@@ -10,6 +10,7 @@ const models = require('../models');
 const utils = require('../utils/utils');
 
 const textReg = /[a-zA-Z0-9\.\!\+\$\#\@\_\&\-\+\(\)\/\*\"\'\:\;\!\?\~\`\|\•\√\π\÷\×\¶\∆\£\¢\€\¥\^\°\=\{\}\\\]\[\✓\%\<\>\%\/\*\-\+\ç\ß\à\á\â\ä\æ\ã\å\ā\è\é\ē\ê\ë\û\ú\ù\ü\ū\î\ì\ï\í\ī\ó\ø\œ\ō\ô\ö\õ\ò\ñ]+/
+const FIRST_TURN_PROMPT = "Welcome to Emojiphone! You are the first player, so all you need to do is respond with a phrase or sentence that is easy to describe with emojis!";
 
 module.exports = {
     RESTART_KEYWORD: 'again',
@@ -114,5 +115,13 @@ If you'd like to restart your game, simply send a message to this number with th
                 ]
             }
         )
+    },
+    makeTurnPrompt: (previousTurn, currentMessageType) => {
+        if (!previousTurn) {
+            return FIRST_TURN_PROMPT;
+        } else {
+            return `Text your response to the following prompt using ONLY ${currentMessageType}:
+${previousTurn.message}`
+        }
     }
 }

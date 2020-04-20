@@ -13,11 +13,6 @@ const TURN_ERROR_THREAD = "error";
 const DEFAULT_THREAD = 'default';
 const COMPLETE_CONVO = 'complete';
 
-const INITIAL_TURN_PROMPT = "Welcome to Emojiphone! You're the first player, so all you need to do is respond with a phrase or sentence that is easy to describe with emojis!";
-
-const SIX_HOURS_IN_MS = 6*60*60*1000;
-
-
 module.exports = {
     /**
      * Create the converstaion thread where a user can take their turn
@@ -48,6 +43,7 @@ module.exports = {
         convo.before(DEFAULT_THREAD, async (inConvo, bot) => {
             let phoneNumber = phone(inConvo.vars.channel)[0];
             let currentTurn = await turnUtils.getTurnByPhoneNumber(phoneNumber);
+            // TODO: Fail out if there's no turn
             await inConvo.setVar("currentTurnId", currentTurn.id);
             let previousTurn = await turnUtils.getPreviousTurn(currentTurn);
             await inConvo.setVar("previousTurn", previousTurn);
@@ -56,6 +52,7 @@ module.exports = {
             } else {
                 await inConvo.setVar("currentMessageType", turnUtils.oppositeMessageType(previousTurn.messageType));
             }
+            inConvo.setVar("turnPrompt", turnUtils.makeTurnPrompt(previousTurn, inConvo.vars.currentMessageType));
         });
         convo.after(async (results, bot) => {
             let currentTurn = await models.turn.findByPk(results.currentTurnId, {include: [{model: models.user, as: "nextUser"}]});
@@ -74,12 +71,9 @@ module.exports = {
     /**
      * Create the "question" that a user interacts with to take their turn
      * @param  {object} convo  Botkit conversation that can ask questions
-     * @param  {object} currentTurn   Database Turn that is being taken.
-     * @param  {String} turnPrompt  What to tell the user in order for them to take their turn
-     * @param  {object} currentMessageType  What the MessageType of the incoming text SHOULD be.
      */
     addTurnQuestion: (convo) => {
-        convo.addQuestion("TEMP FOR NOW", 
+        convo.addQuestion("{{vars.turnPrompt}}", 
             [{
                 default: true,
                 handler: async function(response, inConvo, bot, full_message) {
@@ -119,15 +113,10 @@ module.exports = {
      * @param  {object} completedTurn   Database Turn that was just completed.
      */
     beginNextTurn: async (completedTurn) => {
-        let nextMessageType = turnUtils.oppositeMessageType(completedTurn.messageType);
-        let turnPrompt = `Text your response to the following prompt using ONLY ${nextMessageType}:
-${completedTurn.message}`
-        // let nextTurn = await models.turn.findOne({where: {userId: completedTurn.nextUserId, gameId: completedTurn.gameId}, include: [{model: models.user, as: "user"}]});
         await models.turn.update({isCurrent: true}, {where: {userId: completedTurn.nextUserId, gameId: completedTurn.gameId}});
         let turnBot = await utils.controller.spawn({});
         await turnBot.startConversationWithUser(completedTurn.nextUser.phoneNumber);
         await turnBot.beginDialog(TURN_CONVERSATION);
-        // module.exports.initiateTurnConversation(nextTurn, nextMessageType, turnPrompt);
     },
 
     /**
