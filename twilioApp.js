@@ -27,6 +27,15 @@ module.exports = {
         })
 
         await restartConversation.setupRestartConversation();
+        await turnConversation.setupTurnConversation();
+
+        try {
+            let turnBot = await utils.controller.spawn({});
+            await turnBot.startConversationWithUser("+19198684114");
+            await turnBot.beginDialog("turn");
+        } catch (e) {
+            console.log (e);
+        }
 
         // utils.controller.setupWebserver(5000, function(err, server) {
         //     server.get('/', function(req, res) {
@@ -38,6 +47,7 @@ module.exports = {
         // })
         utils.controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message', async (bot, message) => {setupConversation.initiateGameConversation(message, bot)});    
         utils.controller.hears([turnUtils.RESTART_KEYWORD], 'message', async (bot, message) => {
+            // TODO!!!
             await bot.beginDialog("endGame");
         });    
 

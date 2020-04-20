@@ -19,7 +19,7 @@ const NO_GAMES_THREAD = 'noGames';
 
 
 module.exports = {
-    setupRestartConversation: async (message, bot) => {
+    setupRestartConversation: async () => {
         try {
             let convo = new BotkitConversation(RESTART_CONVERSATION, utils.controller);
             convo.before(DEFAULT_THREAD, async(inConvo, bot) => {
