@@ -47,7 +47,7 @@ module.exports = {
         });    
         utils.controller.hears([turnUtils.RESTART_KEYWORD], 'message', async (bot, message) => {
             // TODO!!!
-            await bot.beginDialog("endGame");
+            await bot.beginDialog(restartConversation.RESTART_CONVERSATION);
         });    
 
         // setupUtils.setupGame([

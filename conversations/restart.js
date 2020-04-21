@@ -11,15 +11,15 @@ const setupConversation = require('../conversations/setup');
 
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
 const WONT_RESTART_THREAD = "wontRestart";
-const RESTART_CONVERSATION = 'endGame';
 const DEFAULT_THREAD = 'default';
 const NOT_FINISHED_THREAD = 'notFinished';
 const NO_GAMES_THREAD = 'noGames';
 const COMPLETE_ACTION = 'complete';
 
 module.exports = {
+    RESTART_CONVERSATION: 'restart',
     setupRestartConversation: async () => {
-        let convo = new BotkitConversation(RESTART_CONVERSATION, utils.controller);
+        let convo = new BotkitConversation(module.exports.RESTART_CONVERSATION, utils.controller);
         convo.before(DEFAULT_THREAD, async(convo, bot) => {
             await module.exports.setConversationVariables(convo);
         })
