@@ -1,6 +1,7 @@
 const phone = require("phone");
 const { BotkitConversation } = require('botkit');
 
+const models = require('../models');
 const turnUtils = require('../utils/turn_utils');
 const setupUtils = require('../utils/setup_utils');
 const gameUtils = require('../utils/game_utils');
@@ -10,64 +11,81 @@ const setupConversation = require('../conversations/setup');
 
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
 const WONT_RESTART_THREAD = "wontRestart";
-const RESTART_CONVERSATION = 'endGame';
-const GAME_RESTARTED_THREAD = "restarted";
 const DEFAULT_THREAD = 'default';
+const NOT_FINISHED_THREAD = 'notFinished';
+const NO_GAMES_THREAD = 'noGames';
+const COMPLETE_ACTION = 'complete';
 
 module.exports = {
-    initiateRestartConversation: async (message, bot) => {
-        try {
-            let phoneNumber = phone(message.channel)[0];
-            let game = await gameUtils.getLastPlayedGameByPhoneNumber(phoneNumber);
+    RESTART_CONVERSATION: 'restart',
+    setupRestartConversation: async () => {
+        let convo = new BotkitConversation(module.exports.RESTART_CONVERSATION, utils.controller);
+        convo.before(DEFAULT_THREAD, async(convo, bot) => {
+            await module.exports.setConversationVariables(convo);
+        })
 
+        module.exports.addRestartQuestion(convo);
+
+        convo.addMessage({
+            text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`, 
+            action: COMPLETE_ACTION
+        }, ALREADY_RESTARTED_THREAD);
+        
+        convo.addMessage({
+            text: `Ok, your game won't be restarted.`, 
+            action: COMPLETE_ACTION
+        }, WONT_RESTART_THREAD);
+        
+        convo.addMessage({
+            text: "Please wait until your game completes before trying to restart it.", 
+            action: COMPLETE_ACTION
+        }, NOT_FINISHED_THREAD);
+        
+        convo.addMessage({
+            text: `You haven't played any games yet. Text me the word "${setupConversation.INITIATE_GAME_KEYWORD}" to begin your first game!`, 
+            action: COMPLETE_ACTION
+        }, NO_GAMES_THREAD);
+        
+        await utils.controller.addDialog(convo);
+    },
+    setConversationVariables: async (convo) => {
+        try {
+            let phoneNumber = phone(convo.vars.channel)[0];
+            let game = await gameUtils.getLastPlayedGameByPhoneNumber(phoneNumber);
             if (!game) {
-                await utils.bot.startConversationWithUser(phoneNumber);
-                await utils.bot.say(`You haven't played any games yet. Text me the word "${setupConversation.INITIATE_GAME_KEYWORD}" to begin your first game!`);
-                return;
+                return await convo.gotoThread(NO_GAMES_THREAD)
             }
 
             if (await gameUtils.isGameStillInProgress(game.id)) {
-                await utils.bot.startConversationWithUser(phoneNumber);
-                await utils.bot.say("Please wait until your game completes before trying to restart it.");
-                return;
+                return await convo.gotoThread(NOT_FINISHED_THREAD)
             }
-
-            let dialogId = RESTART_CONVERSATION + game.id + phoneNumber;
-            let convo = new BotkitConversation(dialogId, utils.controller);
-            await utils.bot.startConversationWithUser(phoneNumber);
-
-            convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
-            convo.addMessage({text: `Great, we've restarted your game! Just sit back and relax until it's your turn.`}, GAME_RESTARTED_THREAD);
-            convo.addMessage({text: `Ok, your game won't be restarted.`}, WONT_RESTART_THREAD);
-            await module.exports.addRestartQuestion(convo, game);
-
-            await utils.controller.addDialog(convo);
-            await utils.bot.beginDialog(dialogId);
-        } catch (err) {
-            console.log("ERROR", err);
+            await convo.setVar("gameId", game.id);
+            let turns = await turnUtils.getUsersAndMessagesFromGameId(game.id);
+            let firstNames = turns.map(turn => turn.user.firstName);
+            await convo.setVar("firstNames", firstNames.join(', '));
+        } catch (e) {
+            console.log("ERR", e);
         }
     },
-    addRestartQuestion: async (outerConvo, game) => {
-        let turns = await turnUtils.getUsersAndMessagesFromGameId(game.id);
-        let firstNames = turns.map(turn => turn.user.firstName);
-
-        let restartPrompt = `You're about to start a game with the following people: ${firstNames.join(', ')}. Respond with YES to continue.`
-        outerConvo.addQuestion(restartPrompt, 
+    addRestartQuestion: (convo) => {
+        let restartPrompt = "You're about to start a game with the following people: {{vars.firstNames}}. Respond with YES to continue."
+        convo.addQuestion(restartPrompt, 
             [{
                 pattern: 'yes',
-                handler: async function(response, convo, bot, full_message) {
+                handler: async function(response, inConvo, bot, full_message) {
+                    let game = await models.game.findByPk(inConvo.vars.gameId);
                     if (!game.restarted) {
-                        await outerConvo.addAction('complete');
+                        await convo.addAction('complete');
                         await module.exports.restartGame(game);
                     } else {
-                        await outerConvo.addAction(ALREADY_RESTARTED_THREAD);
+                        await inConvo.gotoThread(ALREADY_RESTARTED_THREAD);
                     }
                 }
             },
             {
                 default: true,
-                handler: async function(response, convo, bot, full_message) {
-                    await outerConvo.addAction(WONT_RESTART_THREAD);
+                handler: async function(response, inConvo, bot, full_message) {
+                    await inConvo.gotoThread(WONT_RESTART_THREAD);
                 }
             }], 'none', DEFAULT_THREAD
         );

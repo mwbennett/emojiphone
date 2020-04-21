@@ -1,10 +1,11 @@
-process.env.NODE_ENV = (process.env.NODE_ENV) ? process.env.NODE_ENV :  "development";
-require('custom-env').env(true);
-
-const vCard = require('vcard');
-// var Botkit = require('botkit');
 const { Botkit } = require('botkit');
 const { TwilioAdapter } = require('botbuilder-adapter-twilio-sms');
+const { PostgresStorage } = require('botbuilder-storage-postgres');
+const vCard = require('vcard');
+
+
+process.env.NODE_ENV = (process.env.NODE_ENV) ? process.env.NODE_ENV :  "development";
+require('custom-env').env(true);
 
 
 var fetch = require('node-fetch');
@@ -36,6 +37,9 @@ module.exports = {
         });
     },
     createBot: async () => {
+        const postgresStorage = new PostgresStorage({
+            uri : process.env.DATABASE_URI
+        });
         let adapter = new TwilioAdapter({
             debug: true,
             account_sid: process.env.TWILIO_ACCOUNT_SID,
@@ -44,7 +48,8 @@ module.exports = {
         });
 
         module.exports.controller = new Botkit({
-            adapter: adapter
+            adapter: adapter,
+            storage: postgresStorage
         })
 
         module.exports.bot = await module.exports.controller.spawn({});

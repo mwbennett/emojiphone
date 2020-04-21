@@ -10,6 +10,7 @@ const models = require('../models');
 const utils = require('../utils/utils');
 
 const textReg = /[a-zA-Z0-9\.\!\+\$\#\@\_\&\-\+\(\)\/\*\"\'\:\;\!\?\~\`\|\•\√\π\÷\×\¶\∆\£\¢\€\¥\^\°\=\{\}\\\]\[\✓\%\<\>\%\/\*\-\+\ç\ß\à\á\â\ä\æ\ã\å\ā\è\é\ē\ê\ë\û\ú\ù\ü\ū\î\ì\ï\í\ī\ó\ø\œ\ō\ô\ö\õ\ò\ñ]+/
+const FIRST_TURN_PROMPT = "Welcome to Emojiphone! You are the first player, so all you need to do is respond with a phrase or sentence that is easy to describe with emojis!";
 
 module.exports = {
     RESTART_KEYWORD: 'again',
@@ -33,12 +34,13 @@ module.exports = {
     getCurrentTurn: async (gameId) => {
         return await models.turn.findOne({where: {gameId: gameId, isCurrent: true}, include: [{model: models.user, as: "user"}]})
     },
+    getPreviousTurn: async (currentTurn) => {
+        return await models.turn.findOne({where: {gameId: currentTurn.gameId, nextUserId: currentTurn.userId}})
+    },
     sendEndGameMessage: async (gameId) => {
         let messageAndPhoneNumbers = await module.exports.getEndGameMessageWithPhoneNumbers(gameId);
-        console.log(messageAndPhoneNumbers);
 
         for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
-            console.log(phoneNumber);
             utils.bot.say({text: messageAndPhoneNumbers.message, channel: phoneNumber}, (err, response) => {
                 if (err) {
                     console.log(err);
@@ -79,7 +81,7 @@ If you'd like to start a group message to discuss your game, just click one of t
 Android: ${process.env.SERVER_URL}/mmsLink/android/${gameId}
 iOS: ${process.env.SERVER_URL}/mmsLink/ios/${gameId}
 
-If you'd like to restart your game, simply send a message to this number with the word "${module.exports.RESTART_KEYWORD}".`
+If you'd like to restart your latest game, simply send a message to this number with the word "${module.exports.RESTART_KEYWORD}".`
         }
 
         return {
@@ -108,5 +110,13 @@ If you'd like to restart your game, simply send a message to this number with th
                 ]
             }
         )
+    },
+    makeTurnPrompt: (previousTurn, currentMessageType) => {
+        if (!previousTurn) {
+            return FIRST_TURN_PROMPT;
+        } else {
+            return `Text your response to the following prompt using ONLY ${currentMessageType}:
+${previousTurn.message}`
+        }
     }
 }
