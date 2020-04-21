@@ -24,8 +24,6 @@ const EXISTING_USER_THREAD = 'existingUser';
 const COMPLETE_CONVO_ACTION = 'complete';
 const DEFAULT_THREAD = 'default';
 const NAME_PATTERN = /^[a-zA-Z][a-zA-Z\-\s]+$/;
-const GAME_READY_VARIABLE = "gameReady";
-const GAME_USERS_VARIABLE = "gameUsers";
 const ERROR_RESPONSE = "Sorry, we encountered an error processing your request. Please try again or contact our support team at TODO.";
 const FIRST_TIME_WELCOME_PROMPT = "Welcome to Emojiphone! Thanks for starting a new game!";
 
@@ -52,7 +50,7 @@ module.exports = {
             try {
                 user = await utils.getUserByPhoneNumber(phoneNumber);
                 await inConvo.setVar("contactsLeft", setupUtils.MINIMUM_PLAYER_COUNT - 1);
-                await inConvo.setVar(GAME_USERS_VARIABLE, []);
+                await inConvo.setVar("gameUsers", []);
                 if (!user) {
                     await inConvo.setVar("welcomeText", FIRST_TIME_WELCOME_PROMPT);
                     await inConvo.gotoThread(NEW_USER_THREAD);
@@ -168,9 +166,9 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
             {
                 pattern: DONE_ADDING_CONTACTS_KEYWORD,
                 handler: async (response, inConvo, bot, full_message) => {
-                    let users = inConvo.vars[GAME_USERS_VARIABLE];
+                    let users = inConvo.vars.gameUsers;
                     if (setupUtils.isGameReady(users)) {
-                        await inConvo.setVar(GAME_READY_VARIABLE, true);
+                        await inConvo.setVar("gameReady", true);
                         await inConvo.gotoThread(START_GAME_THREAD);
                     } else {
                         await inConvo.gotoThread(NOT_READY_YET_THREAD);
@@ -188,12 +186,12 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
                                 return await inConvo.gotoThread(INVALID_NUMBER_THREAD);
                             }
                             user.phoneNumber = validatedNumber[0];
-                            let users = inConvo.vars[GAME_USERS_VARIABLE];
+                            let users = inConvo.vars.gameUsers;
                             if (setupUtils.containsPhoneNumber(users, user.phoneNumber)) {
                                 await inConvo.gotoThread(DUPLICATE_NUMBER_THREAD);
                             } else {
                                 users.push(user);
-                                await inConvo.setVar(GAME_USERS_VARIABLE, users);
+                                await inConvo.setVar("gameUsers", users);
                                 let contactsLeft = (inConvo.vars.contactsLeft >0) ? inConvo.vars.contactsLeft - 1 : 0;
                                 await inConvo.setVar("contactsLeft", contactsLeft);
                                 await inConvo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
@@ -210,7 +208,7 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
         ], {}, ADD_CONTACTS_THREAD);
     },
     onConversationEnd: async (results) => {
-        if (results[GAME_READY_VARIABLE] && results[GAME_READY_VARIABLE] == true) {
+        if (results.gameReady && results.gameReady == true) {
             try {
                 let currentUser = results.currentUser;
                 let phoneNumber = results.channel;
@@ -218,7 +216,7 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
                     currentUser = await utils.getUserByPhoneNumber(phoneNumber);
                 }
 
-                let turns = await setupUtils.setupGame(results[GAME_USERS_VARIABLE], [[currentUser]]);
+                let turns = await setupUtils.setupGame(results.gameUsers, [[currentUser]]);
                 if (Array.isArray(turns) && turns.length > 0) {
                     turnConversation.takeFirstTurn(turns[0].gameId);
                 } else {
