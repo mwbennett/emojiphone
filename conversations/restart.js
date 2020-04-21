@@ -12,11 +12,10 @@ const setupConversation = require('../conversations/setup');
 const ALREADY_RESTARTED_THREAD = "alreadyRestarted";
 const WONT_RESTART_THREAD = "wontRestart";
 const RESTART_CONVERSATION = 'endGame';
-const GAME_RESTARTED_THREAD = "restarted";
 const DEFAULT_THREAD = 'default';
 const NOT_FINISHED_THREAD = 'notFinished';
 const NO_GAMES_THREAD = 'noGames';
-
+const COMPLETE_ACTION = 'complete';
 
 module.exports = {
     setupRestartConversation: async () => {
@@ -42,13 +41,26 @@ module.exports = {
                 }
             })
 
-            // TODO: complete convo here!!
-            convo.addMessage({text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`}, ALREADY_RESTARTED_THREAD);
-            convo.addMessage({text: `Great, we've restarted your game! Just sit back and relax until it's your turn.`}, GAME_RESTARTED_THREAD);
-            convo.addMessage({text: `Ok, your game won't be restarted.`}, WONT_RESTART_THREAD);
-            convo.addMessage({text: "Please wait until your game completes before trying to restart it."}, NOT_FINISHED_THREAD);
-            convo.addMessage({text: `You haven't played any games yet. Text me the word "${setupConversation.INITIATE_GAME_KEYWORD}" to begin your first game!`}, NO_GAMES_THREAD);
-
+            convo.addMessage({
+                text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`, 
+                action: COMPLETE_ACTION
+            }, ALREADY_RESTARTED_THREAD);
+            
+            convo.addMessage({
+                text: `Ok, your game won't be restarted.`, 
+                action: COMPLETE_ACTION
+            }, WONT_RESTART_THREAD);
+            
+            convo.addMessage({
+                text: "Please wait until your game completes before trying to restart it.", 
+                action: COMPLETE_ACTION
+            }, NOT_FINISHED_THREAD);
+            
+            convo.addMessage({
+                text: `You haven't played any games yet. Text me the word "${setupConversation.INITIATE_GAME_KEYWORD}" to begin your first game!`, 
+                action: COMPLETE_ACTION
+            }, NO_GAMES_THREAD);
+            
             await module.exports.addRestartQuestion(convo);
             await utils.controller.addDialog(convo);
 

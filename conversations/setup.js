@@ -126,7 +126,7 @@ module.exports = {
         }, START_GAME_THREAD);
 
         convo.addMessage({
-            text: `Oops! You don't have enough other players. Please add at least {{vars.contactsLeft}} contacts.`,
+            text: `Oops! You don't have enough other players. Please add at least {{vars.contactsLeft}} more contacts.`,
             action: ADD_CONTACTS_THREAD,
         }, NOT_READY_YET_THREAD);
 
@@ -218,7 +218,6 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
                     currentUser = await utils.getUserByPhoneNumber(phoneNumber);
                 }
 
-                // MAYBE TODO: Fetch the real user
                 let turns = await setupUtils.setupGame(results[GAME_USERS_VARIABLE], [[currentUser]]);
                 if (Array.isArray(turns) && turns.length > 0) {
                     turnConversation.takeFirstTurn(turns[0].gameId);

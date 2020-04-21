@@ -11,7 +11,7 @@ const TURN_FAIL_THREAD = "fail";
 const TURN_THREAD = "turn";
 const TURN_ERROR_THREAD = "error";
 const DEFAULT_THREAD = 'default';
-const COMPLETE_CONVO = 'complete';
+const COMPLETE_ACTION = 'complete';
 
 module.exports = {
     /**
@@ -23,9 +23,13 @@ module.exports = {
     setupTurnConversation: async () => {
         let convo = new BotkitConversation(TURN_CONVERSATION, utils.controller);
 
-        convo.addMessage({text: "Time to take your turn in your game of Emojiphone", action: TURN_THREAD}, DEFAULT_THREAD);
+        convo.before(DEFAULT_THREAD, async (inConvo, bot) => {
+            await setTurnVariables(inConvo);
+        });
 
-        convo.addMessage({text: 'Thanks, your turn has been recorded! You will be notified when the game completes.', action: COMPLETE_CONVO}, TURN_SUCCESS_THREAD);
+        convo.addMessage({text: "Time to take your turn in your game of Emojiphone!", action: TURN_THREAD}, DEFAULT_THREAD);
+
+        convo.addMessage({text: 'Thanks, your turn has been recorded! You will be notified when the game completes.', action: COMPLETE_ACTION}, TURN_SUCCESS_THREAD);
         
         convo.addMessage({
             text: `Sorry your response was not written in ONLY {{vars.currentMessageType}}. Please try again!`,
@@ -33,27 +37,13 @@ module.exports = {
         }, TURN_FAIL_THREAD);
 
         convo.addMessage({
-            text: "Sorry, we encountered an error processing your turn. Please try again or contact our support team at TODO.",
-            action: TURN_THREAD
+            text: "Sorry, we encountered an error processing your turn. Please contact our support team at TODO.",
+            action: COMPLETE_ACTION
         }, TURN_ERROR_THREAD)
 
 
         module.exports.addTurnQuestion(convo);
 
-        convo.before(DEFAULT_THREAD, async (inConvo, bot) => {
-            let phoneNumber = phone(inConvo.vars.channel)[0];
-            let currentTurn = await turnUtils.getTurnByPhoneNumber(phoneNumber);
-            // TODO: Fail out if there's no turn
-            await inConvo.setVar("currentTurnId", currentTurn.id);
-            let previousTurn = await turnUtils.getPreviousTurn(currentTurn);
-            await inConvo.setVar("previousTurn", previousTurn);
-            if (!previousTurn) {
-                await inConvo.setVar("currentMessageType", MessageType.text);
-            } else {
-                await inConvo.setVar("currentMessageType", turnUtils.oppositeMessageType(previousTurn.messageType));
-            }
-            await inConvo.setVar("turnPrompt", turnUtils.makeTurnPrompt(previousTurn, inConvo.vars.currentMessageType));
-        });
         convo.after(async (results, bot) => {
             let currentTurn = await models.turn.findByPk(results.currentTurnId, {include: [{model: models.user, as: "nextUser"}]});
 
@@ -65,6 +55,28 @@ module.exports = {
         })
 
         await utils.controller.addDialog(convo);
+    },
+
+    /**
+     * Set up the variables that allow each conversation to be unique
+     * @param  {object} convo  Botkit conversation that can ask questions
+     */
+    setTurnVariables: async (convo) => {
+        let phoneNumber = phone(convo.vars.channel)[0];
+        let currentTurn = await turnUtils.getTurnByPhoneNumber(phoneNumber);
+        if (!currentTurn) {
+            await convo.gotoThread(TURN_ERROR_THREAD);
+            return;
+        }
+        await convo.setVar("currentTurnId", currentTurn.id);
+        let previousTurn = await turnUtils.getPreviousTurn(currentTurn);
+        await convo.setVar("previousTurn", previousTurn);
+        if (!previousTurn) {
+            await convo.setVar("currentMessageType", MessageType.text);
+        } else {
+            await convo.setVar("currentMessageType", turnUtils.oppositeMessageType(previousTurn.messageType));
+        }
+        await convo.setVar("turnPrompt", turnUtils.makeTurnPrompt(previousTurn, convo.vars.currentMessageType));
     },
 
 
