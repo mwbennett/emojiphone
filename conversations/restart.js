@@ -19,56 +19,55 @@ const COMPLETE_ACTION = 'complete';
 
 module.exports = {
     setupRestartConversation: async () => {
+        let convo = new BotkitConversation(RESTART_CONVERSATION, utils.controller);
+        convo.before(DEFAULT_THREAD, async(convo, bot) => {
+            await setConversationVariables(convo);
+        })
+
+        module.exports.addRestartQuestion(convo);
+
+        convo.addMessage({
+            text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`, 
+            action: COMPLETE_ACTION
+        }, ALREADY_RESTARTED_THREAD);
+        
+        convo.addMessage({
+            text: `Ok, your game won't be restarted.`, 
+            action: COMPLETE_ACTION
+        }, WONT_RESTART_THREAD);
+        
+        convo.addMessage({
+            text: "Please wait until your game completes before trying to restart it.", 
+            action: COMPLETE_ACTION
+        }, NOT_FINISHED_THREAD);
+        
+        convo.addMessage({
+            text: `You haven't played any games yet. Text me the word "${setupConversation.INITIATE_GAME_KEYWORD}" to begin your first game!`, 
+            action: COMPLETE_ACTION
+        }, NO_GAMES_THREAD);
+        
+        await utils.controller.addDialog(convo);
+    },
+    setConversationVariables: async (convo) => {
         try {
-            let convo = new BotkitConversation(RESTART_CONVERSATION, utils.controller);
-            convo.before(DEFAULT_THREAD, async(inConvo, bot) => {
-                try {
-                    let phoneNumber = phone(inConvo.vars.channel)[0];
-                    let game = await gameUtils.getLastPlayedGameByPhoneNumber(phoneNumber);
-                    if (!game) {
-                        await inConvo.gotoThread(NO_GAMES_THREAD)
-                    }
+            let phoneNumber = phone(convo.vars.channel)[0];
+            let game = await gameUtils.getLastPlayedGameByPhoneNumber(phoneNumber);
+            if (!game) {
+                await convo.gotoThread(NO_GAMES_THREAD)
+            }
 
-                    if (await gameUtils.isGameStillInProgress(game.id)) {
-                        await inConvo.gotoThread(NOT_FINISHED_THREAD)
-                    }
-                    await inConvo.setVar("gameId", game.id);
-                    let turns = await turnUtils.getUsersAndMessagesFromGameId(game.id);
-                    let firstNames = turns.map(turn => turn.user.firstName);
-                    await inConvo.setVar("firstNames", firstNames.join(', '));
-                } catch (e) {
-                    console.log("ERR", e);
-                }
-            })
-
-            convo.addMessage({
-                text: `Someone else already restarted your game! Just sit back and relax until it's your turn.`, 
-                action: COMPLETE_ACTION
-            }, ALREADY_RESTARTED_THREAD);
-            
-            convo.addMessage({
-                text: `Ok, your game won't be restarted.`, 
-                action: COMPLETE_ACTION
-            }, WONT_RESTART_THREAD);
-            
-            convo.addMessage({
-                text: "Please wait until your game completes before trying to restart it.", 
-                action: COMPLETE_ACTION
-            }, NOT_FINISHED_THREAD);
-            
-            convo.addMessage({
-                text: `You haven't played any games yet. Text me the word "${setupConversation.INITIATE_GAME_KEYWORD}" to begin your first game!`, 
-                action: COMPLETE_ACTION
-            }, NO_GAMES_THREAD);
-            
-            await module.exports.addRestartQuestion(convo);
-            await utils.controller.addDialog(convo);
-
-        } catch (err) {
-            console.log("ERROR", err);
+            if (await gameUtils.isGameStillInProgress(game.id)) {
+                await convo.gotoThread(NOT_FINISHED_THREAD)
+            }
+            await convo.setVar("gameId", game.id);
+            let turns = await turnUtils.getUsersAndMessagesFromGameId(game.id);
+            let firstNames = turns.map(turn => turn.user.firstName);
+            await convo.setVar("firstNames", firstNames.join(', '));
+        } catch (e) {
+            console.log("ERR", e);
         }
     },
-    addRestartQuestion: async (convo) => {
+    addRestartQuestion: (convo) => {
         let restartPrompt = "You're about to start a game with the following people: {{vars.firstNames}}. Respond with YES to continue."
         convo.addQuestion(restartPrompt, 
             [{

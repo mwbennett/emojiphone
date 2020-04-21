@@ -44,24 +44,8 @@ module.exports = {
     setupSetupConversation: async () => {
         let convo = new BotkitConversation(module.exports.SETUP_CONVERSATION, utils.controller);
 
-        convo.before(DEFAULT_THREAD, async(inConvo, bot) => {
-            let phoneNumber = phone(inConvo.vars.channel)[0];
-            let user;
-            try {
-                user = await utils.getUserByPhoneNumber(phoneNumber);
-                await inConvo.setVar("contactsLeft", setupUtils.MINIMUM_PLAYER_COUNT - 1);
-                await inConvo.setVar("gameUsers", []);
-                if (!user) {
-                    await inConvo.setVar("welcomeText", FIRST_TIME_WELCOME_PROMPT);
-                    await inConvo.gotoThread(NEW_USER_THREAD);
-                } else {
-                    await inConvo.setVar("welcomeText", `Welcome back to Emojiphone, ${user.firstName}! Thanks for starting a new game!`);
-                    await inConvo.setVar("currentUser", user);
-                    await inConvo.gotoThread(EXISTING_USER_THREAD);
-                }
-            } catch (err) {
-                console.log(err);
-            }
+        convo.before(DEFAULT_THREAD, async(convo, bot) => {
+            await setConversationVariables(convo);
         })
         // Add this to default thread to avoid 'length of undefined' error. convo.before will always skip this
         convo.say("Anything..");
@@ -82,10 +66,29 @@ module.exports = {
         }, EXISTING_USER_THREAD);
 
         convo.after(async(results, bot) => {
-            module.exports.onConversationEnd(results);
+            module.exports.startGameIfReady(results);
         })
 
         await utils.controller.addDialog(convo);
+    },
+    setConversationVariables: async (convo) => {
+        let phoneNumber = phone(convo.vars.channel)[0];
+        let user;
+        try {
+            user = await utils.getUserByPhoneNumber(phoneNumber);
+            await convo.setVar("contactsLeft", setupUtils.MINIMUM_PLAYER_COUNT - 1);
+            await convo.setVar("gameUsers", []);
+            if (!user) {
+                await convo.setVar("welcomeText", FIRST_TIME_WELCOME_PROMPT);
+                await convo.gotoThread(NEW_USER_THREAD);
+            } else {
+                await convo.setVar("welcomeText", `Welcome back to Emojiphone, ${user.firstName}! Thanks for starting a new game!`);
+                await convo.setVar("currentUser", user);
+                await convo.gotoThread(EXISTING_USER_THREAD);
+            }
+        } catch (err) {
+            console.log(err);
+        }
     },
     addCreatorAsUserQuestion: (convo) => {
         convo.addQuestion(`Since this is your first time playing, we'll need a way to identify you. What's your name (you may enter first and last)?
@@ -211,7 +214,7 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
             action: ADD_CONTACTS_THREAD,
         }, NOT_READY_YET_THREAD);
     },
-    onConversationEnd: async (results) => {
+    startGameIfReady: async (results) => {
         if (results.gameReady && results.gameReady == true) {
             try {
                 let currentUser = results.currentUser;

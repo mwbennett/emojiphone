@@ -20,7 +20,7 @@ module.exports = {
     setupTurnConversation: async () => {
         let convo = new BotkitConversation(TURN_CONVERSATION, utils.controller);
         convo.before(DEFAULT_THREAD, async (inConvo, bot) => {
-            await setTurnVariables(inConvo);
+            await setConversationVariables(inConvo);
         });
 
         convo.addMessage({text: "Time to take your turn in your game of Emojiphone!", action: TURN_THREAD}, DEFAULT_THREAD);
@@ -53,7 +53,7 @@ module.exports = {
      * Set up the variables that allow each conversation to be unique
      * @param  {object} convo  Botkit conversation that can ask questions
      */
-    setTurnVariables: async (convo) => {
+    setConversationVariables: async (convo) => {
         let phoneNumber = phone(convo.vars.channel)[0];
         let currentTurn = await turnUtils.getTurnByPhoneNumber(phoneNumber);
         if (!currentTurn) {
