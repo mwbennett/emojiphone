@@ -21,7 +21,7 @@ module.exports = {
     setupRestartConversation: async () => {
         let convo = new BotkitConversation(RESTART_CONVERSATION, utils.controller);
         convo.before(DEFAULT_THREAD, async(convo, bot) => {
-            await setConversationVariables(convo);
+            await module.exports.setConversationVariables(convo);
         })
 
         module.exports.addRestartQuestion(convo);
@@ -53,11 +53,11 @@ module.exports = {
             let phoneNumber = phone(convo.vars.channel)[0];
             let game = await gameUtils.getLastPlayedGameByPhoneNumber(phoneNumber);
             if (!game) {
-                await convo.gotoThread(NO_GAMES_THREAD)
+                return await convo.gotoThread(NO_GAMES_THREAD)
             }
 
             if (await gameUtils.isGameStillInProgress(game.id)) {
-                await convo.gotoThread(NOT_FINISHED_THREAD)
+                return await convo.gotoThread(NOT_FINISHED_THREAD)
             }
             await convo.setVar("gameId", game.id);
             let turns = await turnUtils.getUsersAndMessagesFromGameId(game.id);

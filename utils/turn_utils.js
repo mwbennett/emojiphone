@@ -34,18 +34,13 @@ module.exports = {
     getCurrentTurn: async (gameId) => {
         return await models.turn.findOne({where: {gameId: gameId, isCurrent: true}, include: [{model: models.user, as: "user"}]})
     },
-    getTurnByPhoneNumber: async (phoneNumber) => {
-        return await models.turn.findOne({where: {"$user.phoneNumber$": phoneNumber, isCurrent: true}, include: [{model: models.user, as: "user"}]})
-    },
     getPreviousTurn: async (currentTurn) => {
         return await models.turn.findOne({where: {gameId: currentTurn.gameId, nextUserId: currentTurn.userId}})
     },
     sendEndGameMessage: async (gameId) => {
         let messageAndPhoneNumbers = await module.exports.getEndGameMessageWithPhoneNumbers(gameId);
-        console.log(messageAndPhoneNumbers);
 
         for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
-            console.log(phoneNumber);
             utils.bot.say({text: messageAndPhoneNumbers.message, channel: phoneNumber}, (err, response) => {
                 if (err) {
                     console.log(err);
@@ -86,7 +81,7 @@ If you'd like to start a group message to discuss your game, just click one of t
 Android: ${process.env.SERVER_URL}/mmsLink/android/${gameId}
 iOS: ${process.env.SERVER_URL}/mmsLink/ios/${gameId}
 
-If you'd like to restart your game, simply send a message to this number with the word "${module.exports.RESTART_KEYWORD}".`
+If you'd like to restart your latest game, simply send a message to this number with the word "${module.exports.RESTART_KEYWORD}".`
         }
 
         return {

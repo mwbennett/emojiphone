@@ -20,7 +20,7 @@ module.exports = {
     setupTurnConversation: async () => {
         let convo = new BotkitConversation(TURN_CONVERSATION, utils.controller);
         convo.before(DEFAULT_THREAD, async (inConvo, bot) => {
-            await setConversationVariables(inConvo);
+            await module.exports.setConversationVariables(inConvo);
         });
 
         convo.addMessage({text: "Time to take your turn in your game of Emojiphone!", action: TURN_THREAD}, DEFAULT_THREAD);
@@ -39,11 +39,10 @@ module.exports = {
 
         module.exports.addTurnQuestion(convo);
         convo.after(async (results, bot) => {
-            let currentTurn = await models.turn.findByPk(results.currentTurnId, {include: [{model: models.user, as: "nextUser"}]});
-            if (currentTurn.nextUserId != null) {
-                module.exports.beginNextTurn(currentTurn);
+            if (results.currentTurn.nextUserId != null) {
+                module.exports.beginNextTurn(results.currentTurn);
             } else {
-                module.exports.sendEndGameMessages(currentTurn.gameId);
+                module.exports.sendEndGameMessages(results.currentTurn.gameId);
             }
         })
         await utils.controller.addDialog(convo);
@@ -54,14 +53,7 @@ module.exports = {
      * @param  {object} convo  Botkit conversation that can ask questions
      */
     setConversationVariables: async (convo) => {
-        let phoneNumber = phone(convo.vars.channel)[0];
-        let currentTurn = await turnUtils.getTurnByPhoneNumber(phoneNumber);
-        if (!currentTurn) {
-            await convo.gotoThread(TURN_ERROR_THREAD);
-            return;
-        }
-        await convo.setVar("currentTurnId", currentTurn.id);
-        let previousTurn = await turnUtils.getPreviousTurn(currentTurn);
+        let previousTurn = await turnUtils.getPreviousTurn(convo.vars.currentTurn);
         await convo.setVar("previousTurn", previousTurn);
         if (!previousTurn) {
             await convo.setVar("currentMessageType", MessageType.text);
@@ -88,7 +80,7 @@ module.exports = {
                                 messageType: inConvo.vars.currentMessageType,
                                 receivedAt: new Date(),
                                 isCurrent: false
-                            }, {where: {id: inConvo.vars.currentTurnId}});
+                            }, {where: {id: inConvo.vars.currentTurn.id}});
                             await inConvo.gotoThread(TURN_SUCCESS_THREAD);
                         } catch(err){
                             console.log(err);
@@ -118,8 +110,9 @@ module.exports = {
      * @param  {object} completedTurn   Database Turn that was just completed.
      */
     beginNextTurn: async (completedTurn) => {
-        await models.turn.update({isCurrent: true}, {where: {userId: completedTurn.nextUserId, gameId: completedTurn.gameId}});
-        await module.exports.takeTurn(completedTurn.nextUser.phoneNumber)
+        let nextTurn = await models.turn.findOne({where: {userId: completedTurn.nextUserId, gameId: completedTurn.gameId}, include: [{model: models.user, as: "user"}]})
+        nextTurn.update({isCurrent: true});
+        await module.exports.takeTurn(nextTurn)
     },
     /**
      * Given the game identifier, start the first turn of the game!
@@ -127,16 +120,16 @@ module.exports = {
      */
     takeFirstTurn: async (gameId) => {
         let currentTurn = await turnUtils.getCurrentTurn(gameId);
-        await module.exports.takeTurn(currentTurn.user.phoneNumber)
+        await module.exports.takeTurn(currentTurn)
     },
     /**
      * Start a turn conversation with a specific phone number
-     * @param  {string} phoneNumber   Phone number to be texted
+     * @param  {object} turn   Database Turn to be taken.
      */
-    takeTurn: async (phoneNumber) => {
+    takeTurn: async (turn) => {
         let turnBot = await utils.controller.spawn({});
-        await turnBot.startConversationWithUser(phoneNumber);
-        await turnBot.beginDialog(TURN_CONVERSATION);
+        await turnBot.startConversationWithUser(turn.user.phoneNumber);
+        await turnBot.beginDialog(TURN_CONVERSATION, {currentTurn: turn});
     }
 
 }

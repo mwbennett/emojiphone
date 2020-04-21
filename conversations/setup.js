@@ -45,7 +45,7 @@ module.exports = {
         let convo = new BotkitConversation(module.exports.SETUP_CONVERSATION, utils.controller);
 
         convo.before(DEFAULT_THREAD, async(convo, bot) => {
-            await setConversationVariables(convo);
+            await module.exports.setConversationVariables(convo);
         })
         // Add this to default thread to avoid 'length of undefined' error. convo.before will always skip this
         convo.say("Anything..");
@@ -100,7 +100,7 @@ Text "${QUIT_SETUP_KEYWORD}" at any time to quit the setup process.`, [
                 handler: async (response, inConvo, bot, full_message) => {
                     if (NAME_PATTERN.test(full_message.Body)) {
                         try {
-                            let phoneNumber = phoneNumber(inConvo.vars.channel)[0];
+                            let phoneNumber = phone(inConvo.vars.channel)[0];
                             await utils.addUser(full_message.Body, phoneNumber);
                             await inConvo.gotoThread(ADDED_USER_THREAD);
                         } catch (err) {
