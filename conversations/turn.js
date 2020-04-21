@@ -15,22 +15,16 @@ const COMPLETE_ACTION = 'complete';
 
 module.exports = {
     /**
-     * Create the converstaion thread where a user can take their turn
-     * @param  {object} currentTurn  Database Turn that is about to be taken.
-     * @param  {MessageType} currentMessageType  The MessageType of the current type (left blank in case people drop out)
-     * @param  {String} turnPrompt  What to tell the user in order for them to take their turn (could vary whether it's the first player or any other)
+     * Create the converstaion template where a user takes their turn
      */
     setupTurnConversation: async () => {
         let convo = new BotkitConversation(TURN_CONVERSATION, utils.controller);
-
         convo.before(DEFAULT_THREAD, async (inConvo, bot) => {
             await setTurnVariables(inConvo);
         });
 
         convo.addMessage({text: "Time to take your turn in your game of Emojiphone!", action: TURN_THREAD}, DEFAULT_THREAD);
 
-        convo.addMessage({text: 'Thanks, your turn has been recorded! You will be notified when the game completes.', action: COMPLETE_ACTION}, TURN_SUCCESS_THREAD);
-        
         convo.addMessage({
             text: `Sorry your response was not written in ONLY {{vars.currentMessageType}}. Please try again!`,
             action: TURN_THREAD
@@ -41,19 +35,17 @@ module.exports = {
             action: COMPLETE_ACTION
         }, TURN_ERROR_THREAD)
 
+        convo.addMessage({text: 'Thanks, your turn has been recorded! You will be notified when the game completes.', action: COMPLETE_ACTION}, TURN_SUCCESS_THREAD);
 
         module.exports.addTurnQuestion(convo);
-
         convo.after(async (results, bot) => {
             let currentTurn = await models.turn.findByPk(results.currentTurnId, {include: [{model: models.user, as: "nextUser"}]});
-
             if (currentTurn.nextUserId != null) {
                 module.exports.beginNextTurn(currentTurn);
             } else {
-                module.exports.createEndGameConversations(currentTurn.gameId);
+                module.exports.sendEndGameMessages(currentTurn.gameId);
             }
         })
-
         await utils.controller.addDialog(convo);
     },
 
@@ -91,19 +83,17 @@ module.exports = {
                 handler: async function(response, inConvo, bot, full_message) {
                     if (turnUtils.isValidResponse(full_message.Body, inConvo.vars.currentMessageType)) {
                         try {
-                            let currentTurn = await models.turn.findByPk(inConvo.vars.currentTurnId);
-                            await currentTurn.update({
+                            await models.turn.update({
                                 message: full_message.Body,
                                 messageType: inConvo.vars.currentMessageType,
                                 receivedAt: new Date(),
                                 isCurrent: false
-                            });
+                            }, {where: {id: inConvo.vars.currentTurnId}});
                             await inConvo.gotoThread(TURN_SUCCESS_THREAD);
                         } catch(err){
                             console.log(err);
                             await inConvo.gotoThread(TURN_ERROR_THREAD);
                         }
-
                     } else {
                         await inConvo.gotoThread(TURN_FAIL_THREAD);
                     }
@@ -112,9 +102,12 @@ module.exports = {
         );
         
     },
-    createEndGameConversations: async (gameId) => {
+    /**
+     * Send messages to all participants that the game has ended
+     * @param  {integer} gameId   gameId of game that just ended
+     */
+    sendEndGameMessages: async (gameId) => {
         let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId);
-        let game = await models.game.findByPk(gameId);
         for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
             await utils.bot.startConversationWithUser(phoneNumber);
             await utils.bot.say(messageAndPhoneNumbers.message);
@@ -136,6 +129,10 @@ module.exports = {
         let currentTurn = await turnUtils.getCurrentTurn(gameId);
         await module.exports.takeTurn(currentTurn.user.phoneNumber)
     },
+    /**
+     * Start a turn conversation with a specific phone number
+     * @param  {string} phoneNumber   Phone number to be texted
+     */
     takeTurn: async (phoneNumber) => {
         let turnBot = await utils.controller.spawn({});
         await turnBot.startConversationWithUser(phoneNumber);
