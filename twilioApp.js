@@ -1,6 +1,8 @@
 const setupConversation = require('./conversations/setup');
 const setupUtils = require('./utils/setup_utils');
+const turnUtils = require('./utils/turn_utils');
 const turnConversation = require('./conversations/turn');
+const restartConversation = require('./conversations/restart');
 const utils = require('./utils/utils');
 const models = require('./models');
 const User = require('./models/user');
@@ -10,25 +12,43 @@ const android = 'android';
 const acceptablePlatforms = [android, ios];
 
 module.exports = {
-    setup: function() {
-        utils.createBot();
-        utils.controller.setupWebserver(5000, function(err, server) {
-            server.get('/', function(req, res) {
-                res.send(':)');
-            });
-            server.get('/mmsLink/:platform/:gameId', async function(req, res) {
-                let platform = req.params.platform.toLowerCase();
-                if (acceptablePlatforms.indexOf(platform) == -1) {
-                    return res.status(400).send("Platform must be 'ios' or 'android'");
-                }
-                let url = await mmsUtils.makeMmsUrl(req.params.gameId, platform);
-                console.log(url);
-                res.set('location', url);
-                res.status(301).send()
-            })
-            utils.controller.createWebhookEndpoints(server, utils.bot);
+    setup: async function() {
+        await utils.createBot();
+
+        utils.controller.webserver.get('/mmsLink/:platform/:gameId', async(req, res) => {
+            let platform = req.params.platform.toLowerCase();
+            if (acceptablePlatforms.indexOf(platform) == -1) {
+                return res.status(400).send("Platform must be 'ios' or 'android'");
+            }
+            let url = await mmsUtils.makeMmsUrl(req.params.gameId, platform);
+            res.set('location', url);
+            res.status(301).send()
+            
         })
-        utils.controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message_received', (bot, message) => {setupConversation.initiateGameConversation(message)});    
+
+        await restartConversation.setupRestartConversation();
+        await turnConversation.setupTurnConversation();
+        await setupConversation.setupSetupConversation();
+
+        // utils.controller.setupWebserver(5000, function(err, server) {
+        //     server.get('/', function(req, res) {
+        //         res.send(':)');
+        //     });
+        //     server.get('/mmsLink/:platform/:gameId', async function(req, res) {
+        //     })
+        //     utils.controller.createWebhookEndpoints(server, utils.bot);
+        // })
+        utils.controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message', async (bot, message) => {
+            try {
+                await bot.beginDialog(setupConversation.SETUP_CONVERSATION);
+            } catch(e) {
+                console.log(e);
+            }
+        });    
+        utils.controller.hears([turnUtils.RESTART_KEYWORD], 'message', async (bot, message) => {
+            // TODO!!!
+            await bot.beginDialog(restartConversation.RESTART_CONVERSATION);
+        });    
 
         // setupUtils.setupGame([
         //     {
@@ -46,11 +66,11 @@ module.exports = {
         // ]);
 
         // setupUtils.restartGameById(14);
-        // turnConversation.createEndGameConversations(14);
+        // turnConversation.createEndGameConversations(31);
         // turnConversation.restartGame(35, ["+19196183270", "+19198684114"]);
-
+        // turnConversation.takeFirstTurn(74);
         // Initiate a turn on app start:
-        // models.turn.findByPk(46, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(currentTurn => {
+        // models.turn.findByPk(69, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(currentTurn => {
         //     turnConversation.initiateTurnConversation(currentTurn, "text", "Take yer turn, nerd");
         // })
     }
