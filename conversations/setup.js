@@ -63,70 +63,23 @@ module.exports = {
                 console.log(err);
             }
         })
-
-        module.exports.addCreatorAsUserQuestion(convo);
-
-        module.exports.addContactsQuestion(convo);
-
         // Add this to default thread to avoid 'length of undefined' error. convo.before will always skip this
         convo.say("Anything..");
+
+        module.exports.addCreatorAsUserQuestion(convo);
+        module.exports.addCreatorAsUserMessages(convo);
+        module.exports.addContactsQuestion(convo);
+        module.exports.addContactsMessages(convo);
+
         convo.addMessage({
             text: 'Welcome to Emojiphone! Thanks for starting a new game!',
             action: ADD_USER_THREAD
         }, NEW_USER_THREAD);
+
         convo.addMessage({
             text: `Welcome back to Emojiphone, {{vars.currentUser.firstName}}! Thanks for starting a new game!`,
             action: ADD_CONTACTS_THREAD
         }, EXISTING_USER_THREAD);
-
-        convo.addMessage({
-            text: "Great, now let's get started setting up your first game!",
-            action: ADD_CONTACTS_THREAD
-        }, ADDED_USER_THREAD);
-
-        convo.addMessage({
-            text: 'Please provide us with your name; no numbers or special characters!',
-            action: ADD_USER_THREAD
-        }, CONTACT_ERROR_THREAD);
-
-        convo.addMessage({
-            text: 'Successfully added your contact!',
-            action: ADD_CONTACTS_THREAD
-        }, ADDED_PHONE_NUMBER_THREAD);
-
-        convo.addMessage({
-            text: `Sorry, I couldn't understand you. Please send a contact, or say "${DONE_ADDING_CONTACTS_KEYWORD}" or "${QUIT_SETUP_KEYWORD}".`,
-            action: ADD_CONTACTS_THREAD
-        }, INVALID_INPUT_THREAD);
-
-        convo.addMessage({
-            text: ERROR_RESPONSE,
-            action: ADD_CONTACTS_THREAD
-        }, ERROR_THREAD);
-
-        convo.addMessage({
-            text: "Sorry, you've already added someone with that phone number. Please choose a contact with a phone number different from any you've added so far",
-            action: ADD_CONTACTS_THREAD
-        }, DUPLICATE_NUMBER_THREAD);
-
-        convo.addMessage({
-            text: "Sorry, the phone number for that contact is invalid. Please try another contact with a valid US-based phone number.",
-            action: ADD_CONTACTS_THREAD
-        }, INVALID_NUMBER_THREAD);
-        
-        convo.addMessage({
-            text: `Ok, you will not start the game. Text "${module.exports.INITIATE_GAME_KEYWORD}" to begin a new game!`,
-            action: COMPLETE_CONVO_ACTION
-        }, QUIT_GAME_THREAD);
-        convo.addMessage({
-            text: 'Ok, we will begin the game!',
-            action: COMPLETE_CONVO_ACTION
-        }, START_GAME_THREAD);
-
-        convo.addMessage({
-            text: `Oops! You don't have enough other players. Please add at least {{vars.contactsLeft}} more contacts.`,
-            action: ADD_CONTACTS_THREAD,
-        }, NOT_READY_YET_THREAD);
 
         convo.after(async(results, bot) => {
             module.exports.onConversationEnd(results);
@@ -149,7 +102,7 @@ Text "${QUIT_SETUP_KEYWORD}" at any time to quit the setup process.`, [
                             await inConvo.gotoThread(ADDED_USER_THREAD);
                         } catch (err) {
                             console.log(err);
-                            await inConvo.gotoThread(ERROR_THREAD);
+                            await inConvo.gotoThread(CONTACT_ERROR_THREAD);
                         }
                     } else {
                         await inConvo.gotoThread(CONTACT_ERROR_THREAD);
@@ -157,6 +110,17 @@ Text "${QUIT_SETUP_KEYWORD}" at any time to quit the setup process.`, [
                 }
             }
         ], {}, ADD_USER_THREAD);
+    },
+    addCreatorAsUserMessages: (convo) => {
+        convo.addMessage({
+            text: "Great, now let's get started setting up your first game!",
+            action: ADD_CONTACTS_THREAD
+        }, ADDED_USER_THREAD);
+
+        convo.addMessage({
+            text: 'Please provide us with your name; no numbers or special characters!',
+            action: ADD_USER_THREAD
+        }, CONTACT_ERROR_THREAD);
     },
     // TODO: Pull out callbacks as separate functions
     addContactsQuestion: async (convo) => {
@@ -207,6 +171,46 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
             }
         ], {}, ADD_CONTACTS_THREAD);
     },
+    addContactsMessages: (convo) => {
+        convo.addMessage({
+            text: 'Successfully added your contact!',
+            action: ADD_CONTACTS_THREAD
+        }, ADDED_PHONE_NUMBER_THREAD);
+
+        convo.addMessage({
+            text: `Sorry, I couldn't understand you. Please send a contact, or say "${DONE_ADDING_CONTACTS_KEYWORD}" or "${QUIT_SETUP_KEYWORD}".`,
+            action: ADD_CONTACTS_THREAD
+        }, INVALID_INPUT_THREAD);
+
+        convo.addMessage({
+            text: ERROR_RESPONSE,
+            action: ADD_CONTACTS_THREAD
+        }, ERROR_THREAD);
+
+        convo.addMessage({
+            text: "Sorry, you've already added someone with that phone number. Please choose a contact with a phone number different from any you've added so far",
+            action: ADD_CONTACTS_THREAD
+        }, DUPLICATE_NUMBER_THREAD);
+
+        convo.addMessage({
+            text: "Sorry, the phone number for that contact is invalid. Please try another contact with a valid US-based phone number.",
+            action: ADD_CONTACTS_THREAD
+        }, INVALID_NUMBER_THREAD);
+        
+        convo.addMessage({
+            text: `Ok, you will not start the game. Text "${module.exports.INITIATE_GAME_KEYWORD}" to begin a new game!`,
+            action: COMPLETE_CONVO_ACTION
+        }, QUIT_GAME_THREAD);
+        convo.addMessage({
+            text: 'Ok, we will begin the game!',
+            action: COMPLETE_CONVO_ACTION
+        }, START_GAME_THREAD);
+
+        convo.addMessage({
+            text: `Oops! You don't have enough other players. Please add at least {{vars.contactsLeft}} more contacts.`,
+            action: ADD_CONTACTS_THREAD,
+        }, NOT_READY_YET_THREAD);
+    },
     onConversationEnd: async (results) => {
         if (results.gameReady && results.gameReady == true) {
             try {
@@ -230,5 +234,5 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
     },
     sendGameFailedToSetupText: (phoneNumber, message) => {
         utils.bot.say({text: message, channel: phoneNumber}, (err, response) => {});
-    }
+    },
 }
