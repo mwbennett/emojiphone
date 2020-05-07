@@ -102,7 +102,7 @@ If you'd like to restart your latest game, simply send a message to this number 
                 include: [
                     {
                         model: models.user, as: "user",
-                        attributes: ['firstName', 'lastName', 'phoneNumber']
+                        attributes: ['id', 'firstName', 'lastName', 'phoneNumber']
                     }
                 ],
                 order: [

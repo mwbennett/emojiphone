@@ -34,6 +34,7 @@ module.exports = {
     * @param  {Object[]} dbUsers  List of users (each contained within it's own list of one item) from the database in the Sequelize format
     */
     makeTurns: async (dbUsers) => {
+        console.log("DBUSERS", dbUsers);
         dbUsers = _.shuffle(dbUsers);
         let isCurrent = true;
         let messageType = MessageType.text;

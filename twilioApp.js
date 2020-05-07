@@ -7,6 +7,7 @@ const utils = require('./utils/utils');
 const models = require('./models');
 const User = require('./models/user');
 const mmsUtils = require('./utils/mms_utils');
+const gameUtils = require('./utils/game_utils');
 const ios = 'ios';
 const android = 'android';
 const acceptablePlatforms = [android, ios];
@@ -25,6 +26,36 @@ module.exports = {
             res.status(301).send()
             
         })
+
+        utils.controller.webserver.get('/lastPlayedGame/:phoneNumber', async(req, res) => {
+          // res.send('respond with a resource');
+          const phoneNumber = req.params.phoneNumber;
+          let game = await gameUtils.getLastPlayedGameByPhoneNumber(phoneNumber);
+          let usersAndMessages = await turnUtils.getUsersAndMessagesFromGameId(game.id);
+          let users = usersAndMessages.map(uAM => uAM.user);
+          // let users = usersAndMessages.map(uAM => uAM.user).filter(u => u.phoneNumber != phoneNumber);
+          res.json(users);
+        });
+        utils.controller.webserver.get('/userByPhoneNumber/:phoneNumber', async(req, res) => {
+          // res.send('respond with a resource');
+          const phoneNumber = req.params.phoneNumber;
+          let user = await models.user.findOne({where: {phoneNumber: phoneNumber}});
+          res.json(user);
+        });
+        utils.controller.webserver.post('/startGame', async(req, res) => {
+            console.log(req.body);
+
+            // S/b pulled into method to start game..
+            let turns = await setupUtils.setupGame(req.body);
+            if (Array.isArray(turns) && turns.length > 0) {
+                turnConversation.takeFirstTurn(turns[0].gameId);
+            } else {
+                module.exports.sendGameFailedToSetupText(phoneNumber, ERROR_RESPONSE);
+            }
+
+            res.status(200).send();
+
+        });
 
         await restartConversation.setupRestartConversation();
         await turnConversation.setupTurnConversation();
