@@ -2,6 +2,7 @@ const { Botkit } = require('botkit');
 const { TwilioAdapter } = require('botbuilder-adapter-twilio-sms');
 const { PostgresStorage } = require('botbuilder-storage-postgres');
 const vCard = require('vcard');
+const stateUtils = require('./state_utils');
 
 
 process.env.NODE_ENV = (process.env.NODE_ENV) ? process.env.NODE_ENV :  "development";
@@ -75,5 +76,18 @@ module.exports = {
         }
         let dbUser = await models.user.create(user)
         return dbUser;
+    },
+    sayOrQueueMessage: async(user, message) => {
+        if (await stateUtils.isUserInConversation(user)) {
+            await models.queued_message.create({
+                userId: user.id,
+                queuedAt: new Date(),
+                sent: false,
+                message: message,
+            })
+        } else {
+            await module.exports.bot.startConversationWithUser(user.phoneNumber);
+            await module.exports.bot.say(message);
+        }
     }
 }
