@@ -4,6 +4,7 @@ module.exports = (sequelize, DataTypes) => {
     userId: DataTypes.INTEGER,
     dialogId: DataTypes.INTEGER,
     turnId: DataTypes.INTEGER,
+    message: DataTypes.STRING,
     sent: DataTypes.BOOLEAN,
     queuedAt: DataTypes.DATE
   }, {});
