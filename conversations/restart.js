@@ -100,8 +100,7 @@ module.exports = {
             let newTurns = turnsObject.newTurns;
             if (Array.isArray(previousTurns) && previousTurns.length > 0 && Array.isArray(newTurns) && newTurns.length > 0) {
                 for (let turn of previousTurns) {
-                    await utils.bot.startConversationWithUser(turn.user.phoneNumber);
-                    await utils.bot.say("Your game was restarted! Sit back and relax until it's your turn.")
+                    await utils.sayOrQueueMessage(turn.user, "Your game was restarted! Sit back and relax until it's your turn.");
                 }
                 turnConversation.takeFirstTurn(newTurns[0].gameId);
             } else {

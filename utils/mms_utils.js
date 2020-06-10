@@ -4,8 +4,8 @@ module.exports = {
     makeMmsUrl: async (gameId, platform) => {
         let isGroupMessage = true;
 
-        let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId, isGroupMessage);
-        let phoneString = messageAndPhoneNumbers.phoneNumbers.join(',');
+        let messageAndUsers = await turnUtils.getEndGameMessageWithUsers(gameId, isGroupMessage);
+        let phoneString = messageAndUsers.users.map(u => u.phoneNumber).join(',');
 
         let url = "sms://"
 
@@ -15,7 +15,7 @@ module.exports = {
             url += `${phoneString};?`
         }
 
-        url += `body=${encodeURI(messageAndPhoneNumbers.message)}`;
+        url += `body=${encodeURI(messageAndUsers.message)}`;
 
         return url;
 

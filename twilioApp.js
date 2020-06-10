@@ -1,6 +1,7 @@
 const setupConversation = require('./conversations/setup');
 const setupUtils = require('./utils/setup_utils');
 const turnUtils = require('./utils/turn_utils');
+const stateUtils = require('./utils/state_utils');
 const turnConversation = require('./conversations/turn');
 const restartConversation = require('./conversations/restart');
 const utils = require('./utils/utils');
@@ -25,6 +26,13 @@ module.exports = {
             res.status(301).send()
             
         })
+
+        // const user = await models.user.findByPk(73);
+        // const isInConvo = await stateUtils.isUserInConversation(user);
+
+        // console.log("Is in convo?", isInConvo);
+
+        // await utils.sayOrQueueMessage(user, "This bad boy is queued up");
 
         await restartConversation.setupRestartConversation();
         await turnConversation.setupTurnConversation();

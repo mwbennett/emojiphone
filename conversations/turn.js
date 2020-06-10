@@ -99,10 +99,9 @@ module.exports = {
      * @param  {integer} gameId   gameId of game that just ended
      */
     sendEndGameMessages: async (gameId) => {
-        let messageAndPhoneNumbers = await turnUtils.getEndGameMessageWithPhoneNumbers(gameId);
-        for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
-            await utils.bot.startConversationWithUser(phoneNumber);
-            await utils.bot.say(messageAndPhoneNumbers.message);
+        let messageAndUsers = await turnUtils.getEndGameMessageWithUsers(gameId);
+        for (let user of messageAndUsers.users) {
+            await utils.sayOrQueueMessage(user, messageAndUsers.message);
         }
     },
     /**

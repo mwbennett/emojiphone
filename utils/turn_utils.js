@@ -37,20 +37,8 @@ module.exports = {
     getPreviousTurn: async (currentTurn) => {
         return await models.turn.findOne({where: {gameId: currentTurn.gameId, nextUserId: currentTurn.userId}})
     },
-    sendEndGameMessage: async (gameId) => {
-        let messageAndPhoneNumbers = await module.exports.getEndGameMessageWithPhoneNumbers(gameId);
-
-        for (let phoneNumber of messageAndPhoneNumbers.phoneNumbers) {
-            utils.bot.say({text: messageAndPhoneNumbers.message, channel: phoneNumber}, (err, response) => {
-                if (err) {
-                    console.log(err);
-                }
-            });
-        }
-    },
-    getEndGameMessageWithPhoneNumbers: async (gameId, isGroupMessage) => {
+    getEndGameMessageWithUsers: async (gameId, isGroupMessage) => {
         let usersAndMessages = await module.exports.getUsersAndMessagesFromGameId(gameId);
-
         let message = "";
 
         if (isGroupMessage) {
@@ -61,11 +49,9 @@ module.exports = {
 `
         }
 
-        let phoneNumbers = [];
 
         for (let userMessage of usersAndMessages) {
             let user = userMessage.user;
-            phoneNumbers.push(user.phoneNumber);
             let name = user.firstName;
             name += (user.lastName) ? " " + user.lastName : "";
             
@@ -85,7 +71,7 @@ If you'd like to restart your latest game, simply send a message to this number 
         }
 
         return {
-            phoneNumbers: phoneNumbers,
+            users: usersAndMessages.map(um => um.user),
             message: message
         };
 
@@ -102,7 +88,7 @@ If you'd like to restart your latest game, simply send a message to this number 
                 include: [
                     {
                         model: models.user, as: "user",
-                        attributes: ['firstName', 'lastName', 'phoneNumber']
+                        attributes: ['id', 'firstName', 'lastName', 'phoneNumber']
                     }
                 ],
                 order: [
