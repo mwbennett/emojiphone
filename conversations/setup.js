@@ -5,6 +5,7 @@ const utils = require('../utils/utils');
 const setupUtils = require('../utils/setup_utils');
 const turnConversation = require('./turn');
 
+const V_CARD_TYPE = 'text/x-vcard';
 const DONE_ADDING_CONTACTS_KEYWORD = 'done';
 const QUIT_SETUP_KEYWORD = 'exit';
 const START_GAME_THREAD = 'startGame';
@@ -47,6 +48,7 @@ module.exports = {
         convo.before(DEFAULT_THREAD, async(convo, bot) => {
             await module.exports.setConversationVariables(convo);
         })
+
         // Add this to default thread to avoid 'length of undefined' error. convo.before will always skip this
         convo.say("Anything..");
 
@@ -145,9 +147,9 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
             {
                 default: true,
                 handler: async (response, inConvo, bot, full_message) => {
-                    if (full_message.MediaContentType0 === 'text/x-vcard') {
+                    if (full_message.MediaContentType0 === V_CARD_TYPE) {
                         try {
-                            let user = await utils.downloadVCard(full_message);
+                            let user = await utils.vCardMessageToUser(full_message);
                             let validatedNumber = phone(user.phoneNumber, "USA");
                             if (validatedNumber.length == 0 ){
                                 return await inConvo.gotoThread(INVALID_NUMBER_THREAD);
@@ -159,7 +161,7 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
                             } else {
                                 users.push(user);
                                 await inConvo.setVar("gameUsers", users);
-                                let contactsLeft = (inConvo.vars.contactsLeft >0) ? inConvo.vars.contactsLeft - 1 : 0;
+                                let contactsLeft = (inConvo.vars.contactsLeft > 0) ? inConvo.vars.contactsLeft - 1 : 0;
                                 await inConvo.setVar("contactsLeft", contactsLeft);
                                 await inConvo.gotoThread(ADDED_PHONE_NUMBER_THREAD);
                             }

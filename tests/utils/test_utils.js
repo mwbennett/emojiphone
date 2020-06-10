@@ -23,9 +23,9 @@ const PHONE_NUMBER = "+19198684114";
 
 
 describe('utils', () => {
-    describe('downloadVcard', () => {
+    describe('vCardMessageToUser', () => {
         it('should be able to create users from phone numbers', async function () {
-            const user = await utils.downloadVCard(sampleMessage);
+            const user = await utils.vCardMessageToUser(sampleMessage);
             user.should.be.a('object');
             user.should.have.property('firstName');
             user.should.have.property('lastName');

@@ -26,52 +26,24 @@ module.exports = {
             
         })
 
-        await restartConversation.setupRestartConversation();
-        await turnConversation.setupTurnConversation();
         await setupConversation.setupSetupConversation();
+        await turnConversation.setupTurnConversation();
+        await restartConversation.setupRestartConversation();
 
-        // utils.controller.setupWebserver(5000, function(err, server) {
-        //     server.get('/', function(req, res) {
-        //         res.send(':)');
-        //     });
-        //     server.get('/mmsLink/:platform/:gameId', async function(req, res) {
-        //     })
-        //     utils.controller.createWebhookEndpoints(server, utils.bot);
-        // })
         utils.controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message', async (bot, message) => {
             try {
                 await bot.beginDialog(setupConversation.SETUP_CONVERSATION);
             } catch(e) {
                 console.log(e);
             }
-        });    
+        });
+
         utils.controller.hears([turnUtils.RESTART_KEYWORD], 'message', async (bot, message) => {
-            // TODO!!!
-            await bot.beginDialog(restartConversation.RESTART_CONVERSATION);
-        });    
-
-        // setupUtils.setupGame([
-        //     {
-        //         firstName: "Google",
-        //         lastName: "Voice",
-        //         phoneNumber: "+19193781540"
-        //     },{
-        //         firstName: "Evan",
-        //         lastName: "Snyder",
-        //         phoneNumber: "+19198684114"
-        //     },{
-        //         firstName: "Mom",
-        //         phoneNumber: "+19193956116"
-        //     }
-        // ]);
-
-        // setupUtils.restartGameById(14);
-        // turnConversation.createEndGameConversations(31);
-        // turnConversation.restartGame(35, ["+19196183270", "+19198684114"]);
-        // turnConversation.takeFirstTurn(74);
-        // Initiate a turn on app start:
-        // models.turn.findByPk(69, {include: [{model: models.user, as: "user"}, {model: models.user, as: "nextUser"}]}).then(currentTurn => {
-        //     turnConversation.initiateTurnConversation(currentTurn, "text", "Take yer turn, nerd");
-        // })
+            try {
+                await bot.beginDialog(restartConversation.RESTART_CONVERSATION);
+            } catch(e) {
+                console.log(e);
+            }
+        });
     }
 }

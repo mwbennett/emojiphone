@@ -18,7 +18,7 @@ module.exports = {
      * Provided an MMS vCard text message, fetch the vCard data and return a "User" js object (fname, lname, phone number).
      * @param  {BotKit Response} message 
      */
-    downloadVCard: async (message) => {
+    vCardMessageToUser: async (message) => {
         const url = message.MediaUrl0;
         var card = new vCard();
 
