@@ -7,7 +7,7 @@ const models = require('../models');
 // TODO: async/awaitify this page
 
 module.exports = {
-    MINIMUM_PLAYER_COUNT: 1,
+    MINIMUM_PLAYER_COUNT: 3,
     INACTIVE_PLAYER_ERROR_CODE: 500,
     /**
     * Setup the game by instantiating users and turns

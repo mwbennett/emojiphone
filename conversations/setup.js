@@ -265,7 +265,7 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
             await utils.bot.startConversationWithUser(phoneNumber);
             await utils.bot.say(message)
         } catch (err) {
-            console.log('somehow', err);
+            console.log('Error sending message', err);
         }
         
     },
