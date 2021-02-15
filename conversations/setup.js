@@ -24,6 +24,7 @@ const CONTACT_ERROR_THREAD = 'contactError';
 const NEW_USER_THREAD = 'newUser';
 const EXISTING_USER_THREAD = 'existingUser';
 const COMPLETE_CONVO_ACTION = 'complete';
+const ALREADY_ACTIVE_THREAD = 'alreadyActive';
 const DEFAULT_THREAD = 'default';
 const NAME_PATTERN = /^[a-zA-Z][a-zA-Z\-\s]+$/;
 const ERROR_RESPONSE = "Sorry, we encountered an error processing your request. Please try again or contact our support team at TODO.";
@@ -165,6 +166,10 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
                                     throw err;
                                 })
                                 user = user[0]
+                                const isInActiveGame = await setupUtils.isUserInActiveGame(user)
+                                if (isInActiveGame) {
+                                    return await inConvo.gotoThread(ALREADY_ACTIVE_THREAD)
+                                }
                                 users.push(user);
                                 await inConvo.setVar("gameUsers", users);
                                 let contactsLeft = (inConvo.vars.contactsLeft > 0) ? inConvo.vars.contactsLeft - 1 : 0;
@@ -202,6 +207,11 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
             text: "Sorry, you've already added someone with that phone number. Please choose a contact with a phone number different from any you've added so far",
             action: ADD_CONTACTS_THREAD
         }, DUPLICATE_NUMBER_THREAD);
+
+        convo.addMessage({
+            text: "Sorry, you've added someone that is already playing in an active game. We currently only support one game at a time (though multi-game support is coming soon!).",
+            action: ADD_CONTACTS_THREAD
+        }, ALREADY_ACTIVE_THREAD);
 
         convo.addMessage({
             text: "Sorry, the phone number for that contact is invalid. Please try another contact with a valid US-based phone number.",

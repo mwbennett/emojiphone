@@ -111,5 +111,24 @@ module.exports = {
      */
     containsPhoneNumber: (users, phoneNumber) => {
         return users.filter(user => user.phoneNumber == phoneNumber).length > 0
+    },
+
+    isUserInActiveGame: async (user)  => {
+        const turns = await models.turn.findAll({
+            attributes: ['gameId'],
+            where: {
+                userId: user.id,
+            }
+        })
+        const gameIds = turns.map((turn) => turn.gameId)
+        const currentGame = await models.game.findOne({
+            where: {
+                completed: false,
+                id: {[Op.in]: gameIds}
+            }
+        })
+
+        return (currentGame !== null)
+
     }
 }
