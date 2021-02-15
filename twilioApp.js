@@ -3,6 +3,7 @@ const setupUtils = require('./utils/setup_utils');
 const turnUtils = require('./utils/turn_utils');
 const turnConversation = require('./conversations/turn');
 const restartConversation = require('./conversations/restart');
+const cancelConversation = require('./conversations/cancel');
 const utils = require('./utils/utils');
 const models = require('./models');
 const User = require('./models/user');
@@ -29,6 +30,7 @@ module.exports = {
         await setupConversation.setupSetupConversation();
         await turnConversation.setupTurnConversation();
         await restartConversation.setupRestartConversation();
+        await cancelConversation.setupCancelConversation();
 
         utils.controller.hears([setupConversation.INITIATE_GAME_KEYWORD], 'message', async (bot, message) => {
             try {
@@ -41,6 +43,14 @@ module.exports = {
         utils.controller.hears([turnUtils.RESTART_KEYWORD], 'message', async (bot, message) => {
             try {
                 await bot.beginDialog(restartConversation.RESTART_CONVERSATION);
+            } catch(e) {
+                console.log(e);
+            }
+        });
+
+        utils.controller.hears([cancelConversation.CANCEL_KEYWORD], 'message', async (bot, message) => {
+            try {
+                await bot.beginDialog(cancelConversation.CANCEL_CONVERSATION);
             } catch(e) {
                 console.log(e);
             }
