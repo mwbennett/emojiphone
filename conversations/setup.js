@@ -29,7 +29,10 @@ const DEFAULT_THREAD = 'default';
 const NAME_PATTERN = /^[a-zA-Z][a-zA-Z\-\s]+$/;
 const ERROR_RESPONSE = "Sorry, we encountered an error processing your request. Please try again or contact our support team at TODO.";
 const FIRST_TIME_WELCOME_PROMPT = "Welcome to Emojiphone! Thanks for starting a new game!";
+const ALREADY_ACTIVE_ERROR = "Sorry, you've added someone that is already playing in an active game. We currently only support one game at a time (though multi-game support is coming soon!).";
+const ALREADY_ACTIVE_GAME_ERROR = ALREADY_ACTIVE_ERROR + `
 
+Please confirm no users are in an existing game and try again.`
 
 let quitGameResponse = {
     pattern: QUIT_SETUP_KEYWORD,
@@ -209,7 +212,7 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
         }, DUPLICATE_NUMBER_THREAD);
 
         convo.addMessage({
-            text: "Sorry, you've added someone that is already playing in an active game. We currently only support one game at a time (though multi-game support is coming soon!).",
+            text: ALREADY_ACTIVE_ERROR,
             action: ADD_CONTACTS_THREAD
         }, ALREADY_ACTIVE_THREAD);
 
@@ -245,7 +248,11 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
                 if (Array.isArray(turns) && turns.length > 0) {
                     turnConversation.takeFirstTurn(turns[0].gameId);
                 } else {
-                    module.exports.sendGameFailedToSetupText(phoneNumber, ERROR_RESPONSE);
+                    if (turns === setupUtils.INACTIVE_PLAYER_ERROR_CODE) {
+                        return module.exports.sendGameFailedToSetupText(phoneNumber, ALREADY_ACTIVE_GAME_ERROR);
+                    } else {
+                        return module.exports.sendGameFailedToSetupText(phoneNumber, ERROR_RESPONSE);
+                    }
                 }
             } catch (err) {
                 console.log(err);
@@ -253,7 +260,13 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
             }
         }
     },
-    sendGameFailedToSetupText: (phoneNumber, message) => {
-        utils.bot.say({text: message, channel: phoneNumber}, (err, response) => {});
+    sendGameFailedToSetupText: async (phoneNumber, message) => {
+        try {
+            await utils.bot.startConversationWithUser(phoneNumber);
+            await utils.bot.say(message)
+        } catch (err) {
+            console.log('somehow', err);
+        }
+        
     },
 }

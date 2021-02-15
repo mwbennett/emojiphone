@@ -7,17 +7,23 @@ const models = require('../models');
 // TODO: async/awaitify this page
 
 module.exports = {
-    MINIMUM_PLAYER_COUNT: 2,
+    MINIMUM_PLAYER_COUNT: 1,
+    INACTIVE_PLAYER_ERROR_CODE: 500,
     /**
     * Setup the game by instantiating users and turns
-    * @param  {Object[]} newUsers  List of "User" objects to create in the database and then include in the game.
-    * @param  {Object[]} existingUsers  List of users (each contained within it's own list of one item) already existing in the database to include in the game.
+    * @param  {Object[]} newUsers  List of users from the database that came from the setup conversation
+    * @param  {Object[]} existingUsers  List of users already that we know are in the game (usualy just the current user texting the bot)
     */
-    setupGame: (newUsers, existingUsers) => {
+    setupGame: async (newUsers, existingUsers) => {
         if (!existingUsers) {
             existingUsers = [];
         }
-        return module.exports.makeTurns(newUsers.concat(existingUsers));
+        const allUsers = newUsers.concat(existingUsers)
+        const isInActiveGame = await module.exports.areUsersInActiveGame(allUsers)
+        if (isInActiveGame) {
+            return module.exports.INACTIVE_PLAYER_ERROR_CODE
+        }
+        return await module.exports.makeTurns(allUsers);
     },
 
     /**
@@ -72,7 +78,7 @@ module.exports = {
     */
     setupPreviouslyPlayedGame: async (gameId) => {
         let previousTurns = await module.exports.getActiveUsersByGameId(gameId);
-        let users = previousTurns.map(turn => [turn.user]);
+        let users = previousTurns.map(turn => turn.user);
         let newTurns = await module.exports.setupGame([], users);
         return {previousTurns: previousTurns, newTurns: newTurns}
     },
@@ -113,11 +119,12 @@ module.exports = {
         return users.filter(user => user.phoneNumber == phoneNumber).length > 0
     },
 
-    isUserInActiveGame: async (user)  => {
+    areUsersInActiveGame: async (users)  => {
+        const userIds = users.map((user) => user.id)
         const turns = await models.turn.findAll({
             attributes: ['gameId'],
             where: {
-                userId: user.id,
+                userId: {[Op.in]: userIds},
             }
         })
         const gameIds = turns.map((turn) => turn.gameId)
@@ -130,5 +137,9 @@ module.exports = {
 
         return (currentGame !== null)
 
-    }
+    },
+
+    isUserInActiveGame: async (user)  => {
+        return await module.exports.areUsersInActiveGame([user])
+    },
 }
