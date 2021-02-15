@@ -32,7 +32,7 @@ const FIRST_TIME_WELCOME_PROMPT = "Welcome to Emojiphone! Thanks for starting a 
 const ALREADY_ACTIVE_ERROR = "Sorry, you've added someone that is already playing in an active game. We currently only support one game at a time (though multi-game support is coming soon!).";
 const ALREADY_ACTIVE_GAME_ERROR = ALREADY_ACTIVE_ERROR + `
 
-Please confirm no users are in an existing game and try again.`
+Please confirm no users are in an existing game and set up you game again.`
 
 let quitGameResponse = {
     pattern: QUIT_SETUP_KEYWORD,
