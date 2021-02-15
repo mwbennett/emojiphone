@@ -8,25 +8,22 @@ const models = require('../models');
 
 module.exports = {
     MINIMUM_PLAYER_COUNT: 3,
+    INACTIVE_PLAYER_ERROR_CODE: 500,
     /**
     * Setup the game by instantiating users and turns
-    * @param  {Object[]} newUsers  List of "User" objects to create in the database and then include in the game.
-    * @param  {Object[]} existingUsers  List of users (each contained within it's own list of one item) already existing in the database to include in the game.
+    * @param  {Object[]} newUsers  List of users from the database that came from the setup conversation
+    * @param  {Object[]} existingUsers  List of users already that we know are in the game (usualy just the current user texting the bot)
     */
-    setupGame: (newUsers, existingUsers) => {
+    setupGame: async (newUsers, existingUsers) => {
         if (!existingUsers) {
             existingUsers = [];
         }
-        let promises = [];
-        for(let user of newUsers) {
-            promises.push(models.user.upsert(user, {returning: true}).catch(err => {
-                console.log(err);
-                throw err;
-            }));
+        const allUsers = newUsers.concat(existingUsers)
+        const isInActiveGame = await module.exports.areUsersInActiveGame(allUsers)
+        if (isInActiveGame) {
+            return module.exports.INACTIVE_PLAYER_ERROR_CODE
         }
-        return Promise.all(promises).then((dbUsers) => {
-            return module.exports.makeTurns(dbUsers.concat(existingUsers));
-        });
+        return await module.exports.makeTurns(allUsers);
     },
 
     /**
@@ -39,7 +36,7 @@ module.exports = {
         let messageType = MessageType.text;
         let newGame;
         try {
-            newGame = await models.game.create();
+            newGame = await models.game.create({completed: false});
         } catch(e) {
             return new Promise((resolve, reject) => {
                 reject("Could not create new game:", e);
@@ -49,9 +46,9 @@ module.exports = {
         for (var i = 0; i < dbUsers.length; i++) {
             nextUserId = null;
             if (i < dbUsers.length - 1) {
-                nextUserId = dbUsers[i + 1][0].id;
+                nextUserId = dbUsers[i + 1].id;
             }
-            turnPromises.push(module.exports.makeTurn(dbUsers[i][0], nextUserId, isCurrent, newGame.id, messageType));
+            turnPromises.push(module.exports.makeTurn(dbUsers[i], nextUserId, isCurrent, newGame.id, messageType));
             isCurrent = false;
             messageType = null;
         }
@@ -81,7 +78,7 @@ module.exports = {
     */
     setupPreviouslyPlayedGame: async (gameId) => {
         let previousTurns = await module.exports.getActiveUsersByGameId(gameId);
-        let users = previousTurns.map(turn => [turn.user]);
+        let users = previousTurns.map(turn => turn.user);
         let newTurns = await module.exports.setupGame([], users);
         return {previousTurns: previousTurns, newTurns: newTurns}
     },
@@ -120,5 +117,29 @@ module.exports = {
      */
     containsPhoneNumber: (users, phoneNumber) => {
         return users.filter(user => user.phoneNumber == phoneNumber).length > 0
-    }
+    },
+
+    areUsersInActiveGame: async (users)  => {
+        const userIds = users.map((user) => user.id)
+        const turns = await models.turn.findAll({
+            attributes: ['gameId'],
+            where: {
+                userId: {[Op.in]: userIds},
+            }
+        })
+        const gameIds = turns.map((turn) => turn.gameId)
+        const currentGame = await models.game.findOne({
+            where: {
+                completed: false,
+                id: {[Op.in]: gameIds}
+            }
+        })
+
+        return (currentGame !== null)
+
+    },
+
+    isUserInActiveGame: async (user)  => {
+        return await module.exports.areUsersInActiveGame([user])
+    },
 }
