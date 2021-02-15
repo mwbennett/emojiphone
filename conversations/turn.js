@@ -42,6 +42,7 @@ module.exports = {
             if (results.currentTurn.nextUserId != null) {
                 module.exports.beginNextTurn(results.currentTurn);
             } else {
+                await models.game.update({completed: true}, {where: {id: results.currentTurn.gameId}})
                 module.exports.sendEndGameMessages(results.currentTurn.gameId);
             }
         })

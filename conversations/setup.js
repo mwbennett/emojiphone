@@ -4,6 +4,7 @@ const { BotkitConversation } = require('botkit');
 const utils = require('../utils/utils');
 const setupUtils = require('../utils/setup_utils');
 const turnConversation = require('./turn');
+const models = require('../models');
 
 const V_CARD_TYPE = 'text/x-vcard';
 const DONE_ADDING_CONTACTS_KEYWORD = 'done';
@@ -159,6 +160,11 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
                             if (setupUtils.containsPhoneNumber(users, user.phoneNumber)) {
                                 await inConvo.gotoThread(DUPLICATE_NUMBER_THREAD);
                             } else {
+                                user = await models.user.upsert(user, {returning: true}).catch(err => {
+                                    console.log(err);
+                                    throw err;
+                                })
+                                user = user[0]
                                 users.push(user);
                                 await inConvo.setVar("gameUsers", users);
                                 let contactsLeft = (inConvo.vars.contactsLeft > 0) ? inConvo.vars.contactsLeft - 1 : 0;
@@ -225,7 +231,7 @@ Text "${DONE_ADDING_CONTACTS_KEYWORD}" when you want to start the game or "${QUI
                     currentUser = await utils.getUserByPhoneNumber(phoneNumber);
                 }
 
-                let turns = await setupUtils.setupGame(results.gameUsers, [[currentUser]]);
+                let turns = await setupUtils.setupGame(results.gameUsers, [currentUser]);
                 if (Array.isArray(turns) && turns.length > 0) {
                     turnConversation.takeFirstTurn(turns[0].gameId);
                 } else {

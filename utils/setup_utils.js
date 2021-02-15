@@ -7,7 +7,7 @@ const models = require('../models');
 // TODO: async/awaitify this page
 
 module.exports = {
-    MINIMUM_PLAYER_COUNT: 3,
+    MINIMUM_PLAYER_COUNT: 2,
     /**
     * Setup the game by instantiating users and turns
     * @param  {Object[]} newUsers  List of "User" objects to create in the database and then include in the game.
@@ -17,16 +17,7 @@ module.exports = {
         if (!existingUsers) {
             existingUsers = [];
         }
-        let promises = [];
-        for(let user of newUsers) {
-            promises.push(models.user.upsert(user, {returning: true}).catch(err => {
-                console.log(err);
-                throw err;
-            }));
-        }
-        return Promise.all(promises).then((dbUsers) => {
-            return module.exports.makeTurns(dbUsers.concat(existingUsers));
-        });
+        return module.exports.makeTurns(newUsers.concat(existingUsers));
     },
 
     /**
@@ -39,7 +30,7 @@ module.exports = {
         let messageType = MessageType.text;
         let newGame;
         try {
-            newGame = await models.game.create();
+            newGame = await models.game.create({completed: false});
         } catch(e) {
             return new Promise((resolve, reject) => {
                 reject("Could not create new game:", e);
@@ -49,9 +40,9 @@ module.exports = {
         for (var i = 0; i < dbUsers.length; i++) {
             nextUserId = null;
             if (i < dbUsers.length - 1) {
-                nextUserId = dbUsers[i + 1][0].id;
+                nextUserId = dbUsers[i + 1].id;
             }
-            turnPromises.push(module.exports.makeTurn(dbUsers[i][0], nextUserId, isCurrent, newGame.id, messageType));
+            turnPromises.push(module.exports.makeTurn(dbUsers[i], nextUserId, isCurrent, newGame.id, messageType));
             isCurrent = false;
             messageType = null;
         }

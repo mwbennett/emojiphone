@@ -1,6 +1,7 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
   const game = sequelize.define('game', {
+  	completed: DataTypes.BOOLEAN,
     restarted: DataTypes.BOOLEAN,
     token: DataTypes.STRING,
     tokenExpiry: DataTypes.DATE
