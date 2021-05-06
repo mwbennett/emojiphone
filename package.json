@@ -28,6 +28,6 @@
     "emoji-regex": "^8.0.0",
     "mocha": "^6.2.2",
     "phone": "^2.4.3",
-    "underscore": "^1.9.1"
+    "underscore": "^1.12.1"
   }
 }
